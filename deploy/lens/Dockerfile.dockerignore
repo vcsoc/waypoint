@@ -1,0 +1,15 @@
+**
+!deploy/
+!deploy/lens/
+!deploy/lens/python_policy.c
+!deploy/lens/python_runtime.py
+!waypoint/
+!waypoint/proxy/
+!waypoint/proxy/lens/
+!waypoint/proxy/lens/prompts/
+!waypoint/proxy/lens/prompts/**
+!.cargo/
+!.cargo/**
+!waypoint-rust/
+!waypoint-rust/**
+waypoint-rust/target/

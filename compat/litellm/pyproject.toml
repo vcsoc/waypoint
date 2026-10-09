@@ -1,0 +1,16 @@
+[project]
+name = "litellm"
+version = "1.106.0"
+description = "Compatibility distribution for Waypoint integrations"
+requires-python = ">=3.10"
+dependencies = ["waypoint==1.106.0"]
+
+[build-system]
+requires = ["setuptools>=83.0.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = []
+
+[tool.uv.sources]
+waypoint = { workspace = true }

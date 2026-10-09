@@ -1,0 +1,38 @@
+[package]
+name = "waypoint-gateway"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+axum.workspace = true
+envy = "0.4.2"
+http-body-util = "0.1"
+waypoint-inference.workspace = true
+waypoint-gateway-inference.workspace = true
+waypoint-gateway-mcp.workspace = true
+tokio-util = "0.7"
+thiserror.workspace = true
+futures-util.workspace = true
+waypoint-gateway-auth.workspace = true
+waypoint-gateway-ui.workspace = true
+waypoint-auth-types.workspace = true
+waypoint-config.workspace = true
+waypoint-http = { workspace = true, features = ["mcp"] }
+waypoint-llms.workspace = true
+waypoint-secrets.workspace = true
+waypoint-tracing.workspace = true
+serde_json.workspace = true
+serde.workspace = true
+tracing.workspace = true
+tokio = { workspace = true, features = ["signal"] }
+uuid.workspace = true
+tower-sessions-moka-store = "0.15.0"
+
+[dev-dependencies]
+base64.workspace = true
+rstest.workspace = true
+tempfile.workspace = true
+tokio = { workspace = true, features = ["sync"] }
+tower = { version = "0.5", features = ["util"] }

@@ -1,0 +1,6 @@
+{{- include "waypoint.pdb" (dict
+  "root" $
+  "component" .Values.ui
+  "componentName" "ui"
+  "fullname" (include "waypoint.ui.fullname" .)
+  "selectorLabels" (include "waypoint.ui.selectorLabels" .)) }}

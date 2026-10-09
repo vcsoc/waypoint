@@ -1,0 +1,8 @@
+services:
+  lens-worker:
+    build:
+      context: ../..
+      dockerfile: deploy/lens/Dockerfile
+      args:
+        WAYPOINT_RELEASE_TAG: ${WAYPOINT_RELEASE_TAG:?Set the release tag used by the gateway}
+    image: waypoint-lens-worker:local

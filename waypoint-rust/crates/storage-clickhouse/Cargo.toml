@@ -1,0 +1,24 @@
+[package]
+name = "waypoint-storage-clickhouse"
+version = "0.1.0"
+description = "Shared ClickHouse connection and HTTP storage for Waypoint features"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+flate2.workspace = true
+waypoint-http.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+serde_with.workspace = true
+sqlx = { workspace = true, features = ["migrate"] }
+thiserror.workspace = true
+url.workspace = true
+
+[dev-dependencies]
+waypoint-http = { workspace = true, features = ["test-support"] }
+rstest.workspace = true
+testcontainers-modules = { version = "0.15.0", features = ["clickhouse"] }
+tokio.workspace = true
+wiremock.workspace = true

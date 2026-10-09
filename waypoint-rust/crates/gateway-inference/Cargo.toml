@@ -1,0 +1,38 @@
+[package]
+name = "waypoint-gateway-inference"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+waypoint-cache-response.workspace = true
+axum = { workspace = true, features = ["json", "multipart", "original-uri"] }
+base64.workspace = true
+bytes.workspace = true
+waypoint-auth.workspace = true
+waypoint-gateway-auth.workspace = true
+waypoint-inference.workspace = true
+waypoint-inference-transcription.workspace = true
+waypoint-inference-responses.workspace = true
+waypoint-inference-messages.workspace = true
+waypoint-inference-chat.workspace = true
+waypoint-inference-ocr.workspace = true
+waypoint-host-http.workspace = true
+waypoint-host.workspace = true
+waypoint-http.workspace = true
+waypoint-llms.workspace = true
+waypoint-router.workspace = true
+waypoint-secrets.workspace = true
+waypoint-llms-types.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+waypoint-cache-memory.workspace = true
+futures-util.workspace = true
+tokio = { workspace = true, features = ["io-util"] }
+rstest.workspace = true
+tower = { version = "0.5.3", features = ["util"] }
+wiremock.workspace = true

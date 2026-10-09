@@ -1,0 +1,18 @@
+services:
+  waypoint:
+    image: waypoint-licensed:local
+    build:
+      context: .
+      target: runtime
+    env_file:
+      - .env.licensing
+    environment:
+      WAYPOINT_LICENSE_SERVER_URL: http://host.docker.internal:4010
+      WAYPOINT_LICENSE_PUBLIC_KEY_PATH: /run/licenses/public.pem
+    volumes:
+      - type: bind
+        source: ../waypass/secrets/public.pem
+        target: /run/licenses/public.pem
+        read_only: true
+        bind:
+          create_host_path: false

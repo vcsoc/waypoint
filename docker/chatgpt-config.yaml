@@ -1,0 +1,32 @@
+model_list:
+  - model_name: gpt-6.1-sol
+    litellm_params:
+      model: chatgpt/gpt-6.1-sol
+    model_info:
+      mode: responses
+  - model_name: gpt-6-astra
+    litellm_params:
+      model: chatgpt/gpt-6-astra
+    model_info:
+      mode: responses
+  - model_name: gpt-6-sol
+    litellm_params:
+      model: chatgpt/gpt-6-sol
+    model_info:
+      mode: responses
+  - model_name: gpt-6-luna
+    litellm_params:
+      model: chatgpt/gpt-6-luna
+    model_info:
+      mode: responses
+  - model_name: gpt-5.3-codex-spark
+    litellm_params:
+      model: chatgpt/gpt-5.3-codex-spark
+    model_info:
+      mode: responses
+
+litellm_settings:
+  drop_params: true
+
+general_settings:
+  master_key: os.environ/WAYPOINT_MASTER_KEY

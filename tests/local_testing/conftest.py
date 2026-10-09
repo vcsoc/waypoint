@@ -1,0 +1,284 @@
+# conftest.py
+#
+# xdist-compatible test isolation for local_testing tests.
+# Pattern matches tests/test_waypoint/conftest.py:
+#   - Function-scoped fixture saves/restores litellm globals (no reload)
+#   - Module-scoped fixture reloads only in single-process mode
+#
+# IMPORTANT: True defaults are captured at conftest import time (before any
+# test module can pollute them via module-level assignments like
+# `waypoint.num_retries = 3`).  The function-scoped fixture resets globals to
+# these true defaults before every test, preventing cross-test contamination
+# under xdist where module reload is skipped.
+
+import asyncio
+import importlib
+import os
+
+import pytest
+
+import waypoint
+from waypoint.waypoint_core_utils.logging_worker import GLOBAL_LOGGING_WORKER
+from waypoint.utils import _invalidate_model_cost_lowercase_map
+
+# ``waypoint.model_cost`` is loaded at import time from the URL pinned to ``main``
+# (``WAYPOINT_MODEL_COST_MAP_URL``).  The in-tree backup ships with this branch
+# and can include pricing entries that ``main`` has not yet picked up (e.g.
+# Mistral now returns ``ministral-8b-2512`` from ``mistral-tiny`` and the entry
+# was added on this branch).  Backfill any entries that are missing from the
+# remote-fetched map so cost-calculator lookups in tests succeed against the
+# cassette state the branch is being tested with.
+from waypoint.waypoint_core_utils.get_model_cost_map import (
+    RESERVED_TOP_LEVEL_KEYS,
+    GetModelCostMap,
+)
+
+for _k, _v in GetModelCostMap.load_local_model_cost_map().items():
+    if _k in RESERVED_TOP_LEVEL_KEYS:
+        continue
+    waypoint.model_cost.setdefault(_k, _v)
+
+from tests._vcr_conftest_common import (  # noqa: E402,F401
+    VerboseReporterState,
+    _pin_multipart_boundary,
+    apply_vcr_auto_marker_to_items,
+    emit_cassette_cache_session_banner,
+    emit_vcr_classification_summary,
+    emit_vcr_diagnostic_log,
+    install_live_call_probe,
+    record_vcr_outcome,
+    register_persister_if_enabled,
+    reset_vcr_diag_dir,
+    vcr_config_dict,
+)
+from tests.fake_openai_endpoint import ensure_fake_openai_endpoint  # noqa: E402
+
+
+@pytest.fixture(scope="session", autouse=True)
+def fake_openai_endpoint():
+    ensure_fake_openai_endpoint()
+    yield
+
+
+# Per-item respx detection (``apply_vcr_auto_marker_to_items``) auto-skips
+# tests whose ``@pytest.mark.respx`` marker or ``respx_mock`` fixture
+# would conflict with vcrpy's transport patch. We no longer maintain a
+# file-level ``_RESPX_CONFLICTING_FILES`` list here — the previous
+# entries (``test_router.py``) had only a stale ``from respx import
+# MockRouter`` import with no actual respx wiring, so file-level
+# blacklisting was masking valid cache opportunities.
+
+# Files where VCR replay breaks the test:
+# - ``test_router_caching.py``: asserts upstream returns a *new* id per call,
+#   which a deterministic cassette replay violates.
+_VCR_INCOMPATIBLE_FILES = frozenset(
+    {
+        "test_router_caching.py",
+        # Hits the local fake OpenAI endpoint on 127.0.0.1; nothing to record.
+        "test_fake_openai_endpoint.py",
+        # Needs the real connection pool a collected handler tears down; vcrpy
+        # patches the transport that pool lives in.
+        "test_handler_gc_does_not_close_client.py",
+    }
+)
+
+# Individual tests (vs. whole files above) that VCR replay can't model:
+# - ``test_router_text_completion_client``: a concurrency test that fires 300
+#   identical requests to verify the async OpenAI client is *reused* across
+#   calls (per its own comment, it "fails when we create a new Async OpenAI
+#   client per request"). vcrpy patches the HTTP transport, so replay never
+#   opens real connections and cannot exercise the client pool the test exists
+#   to validate. Recording instead stores ~300 near-identical episodes, which
+#   blows past MAX_EPISODES_PER_CASSETTE (50) so the cassette is refused on
+#   every run (MISS:OVERFLOW). The endpoint is a free mock, so the live calls
+#   carry no real provider cost.
+_VCR_INCOMPATIBLE_NODEID_SUFFIXES: tuple[str, ...] = (
+    "test_router.py::test_router_text_completion_client",
+)
+
+
+_verbose_state = VerboseReporterState()
+
+
+@pytest.fixture(scope="module")
+def vcr_config():
+    return vcr_config_dict()
+
+
+def pytest_recording_configure(config, vcr):
+    register_persister_if_enabled(vcr)
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    outcome = yield
+    rep = outcome.get_result()
+    setattr(item, f"rep_{rep.when}", rep)
+
+
+@pytest.fixture(autouse=True)
+def _vcr_outcome_gate(request, vcr):
+    install_live_call_probe(request, vcr)
+    yield
+    record_vcr_outcome(request, vcr)
+
+
+def pytest_configure(config):
+    _verbose_state.remember_pluginmanager(config)
+    reset_vcr_diag_dir()
+
+
+def pytest_runtest_logreport(report):
+    _verbose_state.maybe_emit_verdict(report)
+
+
+def pytest_terminal_summary(terminalreporter, exitstatus, config):
+    emit_cassette_cache_session_banner(terminalreporter)
+    emit_vcr_classification_summary(terminalreporter)
+    emit_vcr_diagnostic_log(terminalreporter)
+
+
+# ---------------------------------------------------------------------------
+# Capture TRUE defaults at conftest import time.  This runs before any test
+# module's top-level code (e.g. `waypoint.num_retries = 3`) executes, so
+# the values here are guaranteed to be the real package defaults.
+# ---------------------------------------------------------------------------
+_SCALAR_DEFAULTS = {
+    "num_retries": getattr(waypoint, "num_retries", None),
+    "num_retries_per_request": getattr(waypoint, "num_retries_per_request", None),
+    "request_timeout": getattr(waypoint, "request_timeout", None),
+    "set_verbose": getattr(waypoint, "set_verbose", False),
+    "cache": getattr(waypoint, "cache", None),
+    "allowed_fails": getattr(waypoint, "allowed_fails", 3),
+    "default_fallbacks": getattr(waypoint, "default_fallbacks", None),
+    "enable_azure_ad_token_refresh": getattr(
+        waypoint, "enable_azure_ad_token_refresh", None
+    ),
+    "tag_budget_config": getattr(waypoint, "tag_budget_config", None),
+    "model_cost": getattr(waypoint, "model_cost", None),
+    "token_counter": getattr(waypoint, "token_counter", None),
+    "disable_aiohttp_transport": getattr(waypoint, "disable_aiohttp_transport", False),
+    "force_ipv4": getattr(waypoint, "force_ipv4", False),
+    "drop_params": getattr(waypoint, "drop_params", None),
+    "modify_params": getattr(waypoint, "modify_params", False),
+    "api_base": getattr(waypoint, "api_base", None),
+    "api_key": getattr(waypoint, "api_key", None),
+}
+
+
+@pytest.fixture(scope="function", autouse=True)
+def isolate_litellm_state():
+    """
+    Per-function isolation fixture.
+
+    Resets litellm globals to their true defaults before each test and
+    restores them afterward, so tests don't leak side effects.
+    Works safely under pytest-xdist parallel execution.
+    """
+    # ---- Save current callback state (for teardown restore) ----
+    original_state = {}
+    for attr in (
+        "callbacks",
+        "success_callback",
+        "failure_callback",
+        "_async_success_callback",
+        "_async_failure_callback",
+    ):
+        if hasattr(waypoint, attr):
+            val = getattr(waypoint, attr)
+            original_state[attr] = val.copy() if val else []
+
+    # Save list-type globals
+    for attr in ("pre_call_rules", "post_call_rules"):
+        if hasattr(waypoint, attr):
+            val = getattr(waypoint, attr)
+            original_state[attr] = val.copy() if val else []
+
+    # Save scalar globals
+    for attr in _SCALAR_DEFAULTS:
+        if hasattr(waypoint, attr):
+            original_state[attr] = getattr(waypoint, attr)
+
+    # ---- Reset to true defaults before the test ----
+    # Flush HTTP client cache
+    if hasattr(waypoint, "in_memory_llm_clients_cache"):
+        waypoint.in_memory_llm_clients_cache.flush_cache()
+
+    # Clear callbacks and rules
+    for attr in (
+        "callbacks",
+        "success_callback",
+        "failure_callback",
+        "_async_success_callback",
+        "_async_failure_callback",
+        "pre_call_rules",
+        "post_call_rules",
+    ):
+        if hasattr(waypoint, attr):
+            setattr(waypoint, attr, [])
+
+    # Reset scalar globals to true defaults (prevents contamination from
+    # module-level code like `waypoint.num_retries = 3` in test files)
+    for attr, default_val in _SCALAR_DEFAULTS.items():
+        if hasattr(waypoint, attr):
+            setattr(waypoint, attr, default_val)
+
+    yield
+
+    # ---- Teardown: restore saved state ----
+    asyncio.run(GLOBAL_LOGGING_WORKER.clear_queue())
+    if hasattr(waypoint, "in_memory_llm_clients_cache"):
+        waypoint.in_memory_llm_clients_cache.flush_cache()
+
+    for attr, original_value in original_state.items():
+        if hasattr(waypoint, attr):
+            setattr(waypoint, attr, original_value)
+    _invalidate_model_cost_lowercase_map()
+
+
+@pytest.fixture(scope="module", autouse=True)
+def setup_and_teardown():
+    """
+    Module-scoped setup. Reloads litellm only in single-process mode
+    (skipped under xdist to avoid cross-worker interference).
+    """
+
+    import waypoint
+
+    worker_id = os.environ.get("PYTEST_XDIST_WORKER", None)
+    if worker_id is None:
+        importlib.reload(waypoint)
+
+        try:
+            if hasattr(waypoint, "proxy") and hasattr(waypoint.proxy, "proxy_server"):
+                import waypoint.proxy.proxy_server
+
+                importlib.reload(waypoint.proxy.proxy_server)
+        except Exception as e:
+            print(f"Error reloading waypoint.proxy.proxy_server: {e}")
+
+        if hasattr(waypoint, "in_memory_llm_clients_cache"):
+            waypoint.in_memory_llm_clients_cache.flush_cache()
+
+    yield
+
+
+def pytest_collection_modifyitems(config, items):
+    apply_vcr_auto_marker_to_items(
+        items,
+        skip_files=_VCR_INCOMPATIBLE_FILES,
+        skip_nodeid_suffixes=_VCR_INCOMPATIBLE_NODEID_SUFFIXES,
+    )
+
+    # Separate tests in 'test_amazing_proxy_custom_logger.py' and other tests
+    custom_logger_tests = [
+        item for item in items if "custom_logger" in item.parent.name
+    ]
+    other_tests = [item for item in items if "custom_logger" not in item.parent.name]
+
+    # Sort tests based on their names
+    custom_logger_tests.sort(key=lambda x: x.name)
+    other_tests.sort(key=lambda x: x.name)
+
+    # Reorder the items list
+    items[:] = custom_logger_tests + other_tests

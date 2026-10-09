@@ -1,0 +1,43 @@
+[package]
+name = "waypoint-llms"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[features]
+test-support = ["waypoint-http/test-support"]
+
+[dependencies]
+waypoint-llms-types.workspace = true
+waypoint-core-utils.workspace = true
+waypoint-auth = { workspace = true, features = ["aws", "azure", "gcp"] }
+waypoint-auth-aws.workspace = true
+waypoint-auth-azure.workspace = true
+waypoint-auth-gcp.workspace = true
+waypoint-host.workspace = true
+waypoint-framer.workspace = true
+waypoint-http.workspace = true
+waypoint-secrets.workspace = true
+waypoint-python-compat.workspace = true
+base64.workspace = true
+bytes.workspace = true
+data-url = "0.3.2"
+futures-util.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+serde_json = { workspace = true, features = ["preserve_order"] }
+serde_path_to_error = "0.1"
+serde_with.workspace = true
+strum.workspace = true
+thiserror.workspace = true
+time.workspace = true
+tokio = { workspace = true, features = ["sync"] }
+url.workspace = true
+
+[dev-dependencies]
+waypoint-http = { workspace = true, features = ["test-support"] }
+aws-smithy-eventstream = "=0.61.4"
+aws-smithy-types = "1.6.1"
+rstest.workspace = true
+tokio.workspace = true

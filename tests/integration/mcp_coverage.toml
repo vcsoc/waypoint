@@ -1,0 +1,15 @@
+[tool.coverage.run]
+branch = true
+parallel = true
+relative_files = true
+include = [
+    "waypoint/proxy/_experimental/mcp_server/*",
+    "waypoint/proxy/management_endpoints/mcp_management_endpoints.py",
+    "waypoint/responses/mcp/*",
+    "waypoint/experimental_mcp_client/*",
+    "waypoint/proxy/guardrails/guardrail_hooks/mcp_*",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true

@@ -1,0 +1,72 @@
+# Waypoint and Waypass changeover review
+
+```json
+{
+  "summary": "Development prototype only. Repository rename and personal Keycloak account are complete; the supplied changeover specification is not implemented",
+  "scores": {"correctness": 4, "security": 4, "performance": 4, "maintainability": 5, "test_coverage": 3, "architecture": 3},
+  "final_score": 38.5,
+  "risk_level": "CRITICAL",
+  "confidence": 0.94,
+  "decision": "REQUEST_CHANGES",
+  "blocking_issues": ["Mixed-license shipping artifacts", "No deployment/tenant-bound standard grants", "Request-path network verification", "No scoped customer authorization", "No immutable grant revisions or activation protocol", "No verified continuity, migration or release evidence"],
+  "non_blocking_issues": ["Legacy product naming remains while compatibility policy is decided"],
+  "recommendations": ["Complete P0 provenance inventory first", "Deliver original standard entitlement adapter and state machine", "Complete phased requirements with evidence before release"]
+}
+```
+
+## Scope and method
+
+Reviewed the complete operator-provided `changeover.md` and the Keycloak integration reference. Compared them with the existing Waypass prototype models, authentication, signing, API and frontend, and the Waypoint license adapter, refresh middleware, Dockerfile and dependency declarations. Read root and enterprise license texts, not restricted enterprise implementations. Verified repository visibility through GitHub, the running Compose services, and Keycloak account creation
+
+This is a gap review of the current prototype against the specification, not a completed transitive license audit, legal opinion, commercial release approval, penetration test or upstream feature-parity assessment. Scores measure current readiness against this specification, not the quality of all retained gateway functionality
+
+## Findings
+
+1. Critical release blocker: the Waypoint build still includes upstream enterprise packages and assets. `Dockerfile:75` includes enterprise dependency metadata, `Dockerfile:158` copies LiteAdmin, and `Dockerfile:165` copies the enterprise directory. `pyproject.toml:81` depends on the enterprise package. The actual enterprise license permits development/testing but restricts production and redistribution. The repository rename and independent signing key do not resolve these terms. Sections 3 and 16 require an audited build without restricted or unknown components, or separately documented rights covering the intended use
+
+2. High: grants are not bound to deployments or tenant scopes. Waypass `app/models.py:152` defines a payload with owner, expiry, features and user/team limits, but no standard audience, deployment key binding, activation, subscription, revision, refresh deadline or anti-replay fields. `app/security.py:48` issues an opaque base64 JSON/signature envelope rather than the JWS contract in section 7. A copied grant can activate any installation using the same issuer configuration. LIC-04 through LIC-08 and GW-43 require a replacement protocol and migration, not just a brand change
+
+3. High: inference requests can synchronously wait for Waypass. `litellm/proxy/middleware/custom_license_refresh_middleware.py:29` runs verification under a lock every 30 seconds; `litellm/proxy/auth/litellm_license.py:116` performs the HTTP call. This is directly inconsistent with sections 4 and 15. New entitlement refresh must run outside the inference path and atomically publish a locally verified snapshot with signed continuity deadlines
+
+4. High: the prototype has global operator authorization, not tenant/customer authorization. Waypass `app/main.py:137` accepts either of two realm roles and `app/main.py:227` lists organisations without an owner/tenant predicate. The same pattern applies to users, grants and audit data. This works for a local operator console but is unsafe to expose as the customer portal required by LIC-01, LIC-09 and section 5. Add scoped principals, explicit permissions, ownership constraints and cross-tenant tests before opening customer access
+
+5. High: license expiry/revocation currently changes the inherited global premium flag, not feature-specific continuity policy. `litellm/proxy/middleware/custom_license_refresh_middleware.py:38` publishes a boolean consumed by existing feature gates. It cannot ensure that expiry preserves existing SSO, security controls, exports and recovery as required by section 7.3. The prior request to test that all SSO access is denied after revocation must be amended: existing administrative access must remain safe, while new premium operations are denied according to their registered policy
+
+6. High: renewal/update overwrites the license row and there is no immutable grant revision or transactional activation capacity. Waypass `app/main.py:399` updates the existing token and entitlement fields. An old token becomes invalid, but its signed revision is not preserved. There are no plan-version, subscription, activation, deployment key, outbox, billing event, notification or idempotency tables. LIC-02 through LIC-15 are largely unimplemented; existing CRUD and renewal tests must not be used as evidence for those requirements
+
+7. High: browser authentication uses sessionStorage tokens rather than the required server-side session boundary. Waypass `web/src/client.ts:20` stores OAuth tokens in browser storage. PKCE and issuer/audience validation are present, but BFF cookies, CSRF, idle/absolute session policy, step-up MFA and a verified disabled-user revocation window are not. Complete section 5.3 and distinguish customer registration from Keycloak identity provisioning
+
+8. High: migration and release readiness are missing. Waypass `app/main.py:125` calls `create_all` at startup without a versioned upgrade path. No restore rehearsal, source/target reconciliation, rolling-upgrade contract, migration CLI, release SBOM, artifact scan, signing-key rotation drill, disconnected activation, or performance comparison has been delivered. Sections 13 and 16 require independent evidence for these scenarios
+
+9. Medium: a literal global name replacement would corrupt provenance and compatibility. The source tree contains thousands of files with inherited imports, provider IDs, configuration contracts and database/migration names. Section 3.3 forbids a blanket replacement. Product-owned names should migrate with a declared compatibility policy; upstream license texts, citations and third-party provider names must remain accurate. Local folder and data paths must not be moved until a verified mount/config migration is planned
+
+## Scores
+
+| Area | Readiness out of 10 |
+| --- | --- |
+| Correctness | 4 |
+| Security | 4 |
+| Performance | 4 |
+| Maintainability | 5 |
+| Test coverage | 3 |
+| Architecture | 3 |
+
+Risk: critical for commercial release. Decision: request changes. Confidence: 0.94
+
+## Work order
+
+Finish P0 first: pin the baseline, inventory transitive dependencies and artifacts, classify retain/replace boundaries, and explicitly exclude restricted/unknown components from release builds. Rebranding is necessary but does not prove this exit criterion
+
+P1 establishes original product/config names, stable public contracts, tenant identity/authorization, migrations and a permissive build. Preserve the working virtual keys and data. The owner must choose whether legacy imports/CLI/environment aliases remain during migration
+
+P2 implements JWS grant schemas, tenant/deployment proof-of-possession, immutable revisions, plans/subscriptions, asynchronous snapshot refresh, continuity, offline activation, key rotation and portals. Use a versioned adapter for the existing development token instead of silently interpreting old licenses as new grants
+
+P3 through P5 deliver the identity/governance, accounting/policy and managed-resource requirements only after component-level retain/replace review. Every LIC and GW requirement remains tracked; none is waived by a phase label
+
+P6 rehearses migration and rollback with isolated databases and restoration evidence. P7 produces artifact scans, full suites, actual performance/recovery measurements and release documentation. Legal/brand clearance and production credentials remain owner deliverables, not engineering certifications
+
+## Current evidence and limits
+
+Previous development checks reported 291 Waypoint tests, three Waypass API lifecycle tests and one real Keycloak/PostgreSQL browser CRUD/login/logout test passing. These prove a narrow local prototype flow. They do not prove all 60 requirements, complete feature parity, current image/source parity, customer isolation or production readiness. The latest source changes still need a rebuild and re-verification
+
+GitHub repositories are now `vcsoc/waypoint` (public, unchanged visibility) and `vcsoc/waypass` (private). Local paths remain `/Users/chris/projects/vcsoc/litellm` and `/Users/chris/projects/vcsoc/litellmlic` pending compatibility decisions. The new personal Keycloak user is `chris`, with a temporary password, first-login password change and only the application administrator role, not master-realm administration

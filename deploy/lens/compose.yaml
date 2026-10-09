@@ -1,0 +1,21 @@
+services:
+  lens-worker:
+    image: ${LENS_WORKER_IMAGE:-${WAYPOINT_VERSION:+ghcr.io/berriai/litellm-lens-worker:v}${WAYPOINT_VERSION:-}}
+    environment:
+      WAYPOINT_URL: ${WAYPOINT_URL:?Set the URL reachable from this container}
+      LENS_WORKER_TOKEN: ${LENS_WORKER_TOKEN:-}
+      WAYPOINT_LENS_SERVICE_TOKEN: ${WAYPOINT_LENS_SERVICE_TOKEN:?Set the same secret on Waypoint and Lens}
+      CLICKHOUSE_URL: ${CLICKHOUSE_URL:?Set the ClickHouse URL reachable from Lens}
+      CLICKHOUSE_DATABASE: ${CLICKHOUSE_DATABASE:-waypoint}
+      AGENT_TRACING_RETENTION_DAYS: ${AGENT_TRACING_RETENTION_DAYS:-14}
+    ports:
+      - "127.0.0.1:${LENS_PORT:-4318}:4318"
+    mem_limit: 2g
+    cpus: 2
+    pids_limit: 64
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=${LENS_WORKER_TMP_SIZE:-1g}
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]

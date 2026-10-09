@@ -1,0 +1,134 @@
+[{
+    "title": "Claude Code Quickstart",
+    "description": "This is a quickstart guide to using Claude Code with Waypoint.",
+    "url": "https://docs.litellm.ai/docs/tutorials/claude_responses_api",
+    "date": "2026-01-15",
+    "version": "1.0.0",
+    "tags": [
+        "Claude Code",
+        "Waypoint"
+    ]
+},
+{
+    "title": "Claude Code with MCPs",
+    "description": "This is a guide to using Claude Code with MCPs via Waypoint Proxy.",
+    "url": "https://docs.litellm.ai/docs/tutorials/claude_mcp",
+    "date": "2026-01-15",
+    "version": "1.0.0",
+    "tags": [
+        "Claude Code",
+        "Waypoint",
+        "MCP"
+    ]
+}, 
+{
+    "title": "Claude Code with Non-Anthropic Models",
+    "description": "This is a guide to using Claude Code with non-Anthropic models via Waypoint Proxy.",
+    "url": "https://docs.litellm.ai/docs/tutorials/claude_non_anthropic_models",
+    "date": "2026-01-16",
+    "version": "1.0.0",
+    "tags": [
+        "Claude Code",
+        "Waypoint",
+        "OpenAI",
+        "Gemini"
+    ]
+},
+{
+    "title": "Cursor Quickstart",
+    "description": "This is a quickstart guide to using Cursor with Waypoint.",
+    "url": "https://docs.litellm.ai/docs/tutorials/cursor_integration",
+    "date": "2026-01-16",
+    "version": "1.0.0",
+    "tags": [
+        "Cursor",
+        "Waypoint",
+        "Quickstart"
+    ]
+},
+{
+    "title": "Github Copilot Quickstart",
+    "description": "This is a quickstart guide to using Github Copilot with Waypoint.",
+    "url": "https://docs.litellm.ai/docs/tutorials/github_copilot_integration",
+    "date": "2026-01-16",
+    "version": "1.0.0",
+    "tags": [
+        "Github Copilot",
+        "Waypoint",
+        "Quickstart"
+    ]
+},
+{
+    "title": "Waypoint Gemini CLI Quickstart",
+    "description": "This is a quickstart guide to using Waypoint Gemini CLI.",
+    "url": "https://docs.litellm.ai/docs/tutorials/litellm_gemini_cli",
+    "date": "2026-01-16",
+    "version": "1.0.0",
+    "tags": [
+        "Gemini CLI",
+        "Gemini",
+        "Waypoint",
+        "Quickstart"
+    ]
+},
+{
+    "title": "OpenAI Codex CLI Quickstart",
+    "description": "This is a quickstart guide to using OpenAI Codex CLI.",
+    "url": "https://docs.litellm.ai/docs/tutorials/openai_codex",
+    "date": "2026-01-16",
+    "version": "1.0.0",
+    "tags": [
+        "OpenAI Codex CLI",
+        "OpenAI",
+        "Waypoint",
+        "Quickstart"
+    ]
+},
+{
+    "title": "OpenWebUI Quickstart",
+    "description": "This is a quickstart guide to using OpenWebUI with Waypoint.",
+    "url": "https://docs.litellm.ai/docs/tutorials/openweb_ui",
+    "date": "2026-01-16",
+    "version": "1.0.0",
+    "tags": [
+        "OpenWebUI",
+        "Waypoint",
+        "Quickstart"
+    ]
+},
+{
+    "title": "AI Coding Tool Usage Tracking",
+    "description": "This is a guide to tracking usage for AI coding tools monitor the use of Claude Code , Google Antigravity, OpenAI Codex, Roo Code etc. through Waypoint.",
+    "url": "https://docs.litellm.ai/docs/tutorials/cost_tracking_coding",
+    "date": "2026-01-17",
+    "version": "1.0.0",
+    "tags": [
+        "Claude Code",
+        "Gemini CLI",
+        "OpenAI Codex",
+        "Waypoint"
+    ]
+},
+{
+    "title": "Use Web Search with Claude Code (across Bedrock/OpenAI/Gemini/etc.)",
+    "description": "This is a guide for using Web Search with Claude Code via Waypoint.",
+    "url": "https://docs.litellm.ai/docs/tutorials/claude_code_websearch",
+    "date": "2026-01-17",
+    "version": "1.0.0",
+    "tags": [
+        "Claude Code",
+        "Waypoint",
+        "Web Search"
+    ]
+},
+{
+    "title": "Track Claude Code Usage per user via Custom Headers",
+    "description": "This is a guide for tracking claude code user usage by passing a customer ID header.",
+    "url": "https://docs.litellm.ai/docs/tutorials/claude_code_customer_tracking",
+    "date": "2026-01-17",
+    "version": "1.0.0",
+    "tags": [
+        "Claude Code",
+        "Waypoint"
+    ]
+}]

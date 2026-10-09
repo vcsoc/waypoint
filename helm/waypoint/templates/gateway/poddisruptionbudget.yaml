@@ -1,0 +1,6 @@
+{{- include "waypoint.pdb" (dict
+  "root" $
+  "component" .Values.gateway
+  "componentName" "gateway"
+  "fullname" (include "waypoint.gateway.fullname" .)
+  "selectorLabels" (include "waypoint.gateway.selectorLabels" .)) }}

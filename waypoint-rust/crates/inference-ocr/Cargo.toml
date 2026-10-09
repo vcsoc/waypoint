@@ -1,0 +1,37 @@
+[package]
+name = "waypoint-inference-ocr"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+base64.workspace = true
+bytes.workspace = true
+futures-util.workspace = true
+waypoint-auth = { workspace = true, features = ["aws", "azure", "gcp"] }
+waypoint-core-utils.workspace = true
+waypoint-host.workspace = true
+waypoint-http.workspace = true
+waypoint-inference.workspace = true
+waypoint-llms.workspace = true
+waypoint-llms-types.workspace = true
+waypoint-secrets.workspace = true
+waypoint-tracing.workspace = true
+mime_guess = "2.0.5"
+serde.workspace = true
+serde_json = { workspace = true, features = ["preserve_order"] }
+tokio.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+waypoint-auth-aws.workspace = true
+waypoint-auth-gcp.workspace = true
+waypoint-host-native.workspace = true
+waypoint-http = { workspace = true, features = ["test-support"] }
+waypoint-inference-testing.workspace = true
+waypoint-llms = { workspace = true, features = ["test-support"] }
+rand.workspace = true
+rstest.workspace = true
+time.workspace = true
+wiremock.workspace = true

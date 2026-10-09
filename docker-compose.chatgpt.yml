@@ -1,0 +1,55 @@
+name: waypoint
+
+services:
+  waypoint:
+    image: waypoint:local
+    build:
+      context: .
+      target: runtime
+    restart: unless-stopped
+    command: ["--config", "/app/config.yaml", "--port", "4000"]
+    ports:
+      - "127.0.0.1:${WAYPOINT_PORT:-4001}:4000"
+    environment:
+      DATABASE_URL: "postgresql://llmproxy:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/litellm"
+      WAYPOINT_MASTER_KEY: "${WAYPOINT_MASTER_KEY:?Set WAYPOINT_MASTER_KEY in .env}"
+      WAYPOINT_SALT_KEY: "${WAYPOINT_SALT_KEY:?Set WAYPOINT_SALT_KEY in .env}"
+      UI_USERNAME: "${UI_USERNAME:-admin}"
+      UI_PASSWORD: "${UI_PASSWORD:?Set UI_PASSWORD in .env}"
+      CHATGPT_TOKEN_DIR: /var/lib/waypoint/chatgpt
+      STORE_MODEL_IN_DB: "True"
+    volumes:
+      - ./docker/chatgpt-config.yaml:/app/config.yaml:ro
+      - ${CHATGPT_AUTH_HOST_DIR:-${HOME}/.config/waypoint/chatgpt}:/var/lib/waypoint/chatgpt
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost:4000/health/liveliness', timeout=5)"
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+  db:
+    image: postgres:16-alpine@sha256:4e6e670bb069649261c9c18031f0aded7bb249a5b6664ddec29c013a89310d50
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: litellm
+      POSTGRES_USER: llmproxy
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}"
+    volumes:
+      - type: bind
+        source: ../data/waypoint
+        target: /var/lib/postgresql/data
+        bind:
+          create_host_path: false
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U llmproxy -d litellm"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
