@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
-from typing import Final, Optional
+from typing import Final
 
 import jsonschema
 
@@ -225,7 +225,7 @@ COST_DESCRIPTIONS: dict[str, str] = {
 }
 
 
-def cost_description(key: str) -> Optional[str]:
+def cost_description(key: str) -> str | None:
     if key in COST_DESCRIPTIONS:
         return COST_DESCRIPTIONS[key]
     if key.endswith("_flex"):
@@ -291,7 +291,7 @@ def string_key_schemas(modes: tuple) -> dict[str, JsonSchema]:
     }
 
 
-def classify(key: str, modes: tuple) -> Optional[JsonSchema]:
+def classify(key: str, modes: tuple) -> JsonSchema | None:
     curated = {**OBJECT_KEYS, **ARRAY_KEYS, **string_key_schemas(modes), **INTEGER_KEYS, **NUMBER_KEYS}
     if key in curated:
         return curated[key]
@@ -388,20 +388,20 @@ def main() -> int:
     rendered = render(build_schema(prices))
     errors = validation_errors(prices, json.loads(rendered))
     if errors:
-        print(f"{PRICES_PATH.name} does not validate against the generated schema:")
-        print("\n".join(errors[:20]))
+        sys.stdout.write(f"{PRICES_PATH.name} does not validate against the generated schema:" + "\n")
+        sys.stdout.write(str("\n".join(errors[:20])) + "\n")
         return 1
     if not check:
         SCHEMA_PATH.write_text(rendered)
-        print(f"wrote {SCHEMA_PATH}")
+        sys.stdout.write(f"wrote {SCHEMA_PATH}" + "\n")
         return 0
     if not SCHEMA_PATH.exists() or SCHEMA_PATH.read_text() != rendered:
-        print(
-            f"{SCHEMA_PATH.name} is out of sync with {PRICES_PATH.name}. "
-            f"Run `python {Path(__file__).relative_to(REPO_ROOT)}` and commit the result."
+        sys.stdout.write(
+            f"{SCHEMA_PATH.name} is out of sync with {PRICES_PATH.name}. Run `python {Path(__file__).relative_to(REPO_ROOT)}` and commit the result."
+            + "\n"
         )
         return 1
-    print(f"{SCHEMA_PATH.name} is in sync and {PRICES_PATH.name} validates against it")
+    sys.stdout.write(f"{SCHEMA_PATH.name} is in sync and {PRICES_PATH.name} validates against it" + "\n")
     return 0
 
 

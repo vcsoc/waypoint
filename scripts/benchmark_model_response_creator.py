@@ -18,9 +18,9 @@ import json
 import logging
 import os
 import statistics
+import sys
 import time
 from dataclasses import asdict, dataclass
-from typing import List
 from unittest.mock import MagicMock
 
 os.environ.setdefault("WAYPOINT_LOG", "ERROR")
@@ -127,12 +127,10 @@ def run_scenario(
     spec = SCENARIOS[scenario_key]
     wrapper = _make_wrapper(provider="anthropic", model="claude-3-5-sonnet")
 
-    if scenario_key == "no_chunk":
-        runner = lambda: bench_no_chunk(wrapper, iterations)  # noqa: E731
-    else:
-        runner = lambda: bench_with_chunk(
-            wrapper, spec["chunk_factory"], iterations
-        )  # noqa: E731
+    def runner() -> float:
+        if scenario_key == "no_chunk":
+            return bench_no_chunk(wrapper, iterations)
+        return bench_with_chunk(wrapper, spec["chunk_factory"], iterations)
 
     for _ in range(warmup):
         runner()
@@ -163,28 +161,25 @@ def main() -> None:
     ap.add_argument("--json", dest="json_out")
     args = ap.parse_args()
 
-    print(
-        f"\n=== label={args.label}  iterations={args.iterations:,}  "
-        f"warmup={args.warmup}  repeats={args.repeats} (min reported) ==="
+    sys.stdout.write(
+        f"\n=== label={args.label}  iterations={args.iterations:,}  warmup={args.warmup}  repeats={args.repeats} (min reported) ==="
+        + "\n"
     )
-    results: List[Result] = []
+    results: list[Result] = []
     for scenario in SCENARIOS:
         r = run_scenario(
             args.label, scenario, args.iterations, args.repeats, args.warmup
         )
         results.append(r)
-        print(
-            f"  {r.scenario:12s}: "
-            f"min={r.elapsed_min_s*1000:8.2f} ms  "
-            f"median={r.elapsed_median_s*1000:8.2f} ms  "
-            f"per-call={r.per_call_us:7.3f} μs  "
-            f"calls/s={r.calls_per_sec:>12,.0f}"
+        sys.stdout.write(
+            f"  {r.scenario:12s}: min={r.elapsed_min_s * 1000:8.2f} ms  median={r.elapsed_median_s * 1000:8.2f} ms  per-call={r.per_call_us:7.3f} μs  calls/s={r.calls_per_sec:>12,.0f}"
+            + "\n"
         )
 
     if args.json_out:
         with open(args.json_out, "w", encoding="utf-8") as f:
             json.dump([asdict(r) for r in results], f, indent=2)
-        print(f"\nWrote {len(results)} results to {args.json_out}")
+        sys.stdout.write(f"\nWrote {len(results)} results to {args.json_out}" + "\n")
 
 
 if __name__ == "__main__":

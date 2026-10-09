@@ -5,7 +5,6 @@ https://resend.com/docs/api-reference/emails/send-email
 """
 
 import os
-from typing import List
 
 from waypoint._logging import verbose_logger
 from waypoint.llms.custom_httpx.http_handler import (
@@ -43,7 +42,7 @@ class ResendEmailLogger(BaseEmailLogger):
     async def send_email(
         self,
         from_email: str,
-        to_email: List[str],
+        to_email: list[str],
         subject: str,
         html_body: str,
     ):
@@ -64,4 +63,3 @@ class ResendEmailLogger(BaseEmailLogger):
         verbose_logger.debug(
             f"Email sent with status code {response.status_code}. Got response: {response.json()}"
         )
-        return

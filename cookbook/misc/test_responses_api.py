@@ -1,5 +1,6 @@
 import base64
 import os
+import sys
 import time
 
 from openai import OpenAI
@@ -37,15 +38,15 @@ response = client.responses.create(
 )
 
 
-print(response.output_text)
-print("response1 id===", response.id)
-print("sleeping for 20 seconds...")
+sys.stdout.write(str(response.output_text) + "\n")
+sys.stdout.write(" ".join(str(_output_value) for _output_value in ("response1 id===", response.id)) + "\n")
+sys.stdout.write("sleeping for 20 seconds..." + "\n")
 time.sleep(20)
-print("making follow up request for existing id")
+sys.stdout.write("making follow up request for existing id" + "\n")
 response2 = client.responses.create(
     model="bedrock/us.anthropic.claude-haiku-4-5-20251001-v1:0",
     previous_response_id=response.id,
     input="ok, and what objects are in the image?",
 )
 
-print(response2.output_text)
+sys.stdout.write(str(response2.output_text) + "\n")

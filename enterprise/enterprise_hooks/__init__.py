@@ -1,4 +1,4 @@
-from typing import Dict, Literal, Type, Union
+from typing import Literal
 
 from waypoint_enterprise.proxy.hooks.managed_files import PROXY_LiteLLMManagedFiles
 from waypoint_enterprise.proxy.hooks.managed_vector_stores import (
@@ -7,21 +7,14 @@ from waypoint_enterprise.proxy.hooks.managed_vector_stores import (
 
 from waypoint.integrations.custom_logger import CustomLogger
 
-ENTERPRISE_PROXY_HOOKS: Dict[str, Type[CustomLogger]] = {
+ENTERPRISE_PROXY_HOOKS: dict[str, type[CustomLogger]] = {
     "managed_files": PROXY_LiteLLMManagedFiles,
     "managed_vector_stores": PROXY_LiteLLMManagedVectorStores,
 }
 
 
 def get_enterprise_proxy_hook(
-    hook_name: Union[
-        Literal[
-            "managed_files",
-            "managed_vector_stores",
-            "max_parallel_requests",
-        ],
-        str,
-    ],
+    hook_name: Literal["managed_files", "managed_vector_stores", "max_parallel_requests"] | str,
 ):
     """
     Factory method to get a enterprise hook instance by name

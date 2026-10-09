@@ -18,6 +18,6 @@ def main(out_path: str) -> None:
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("usage: python terraform/provider/tools/dump_openapi.py <out_path>", file=sys.stderr)
+        sys.stderr.write("usage: python terraform/provider/tools/dump_openapi.py <out_path>" + "\n")
         sys.exit(2)
     main(sys.argv[1])

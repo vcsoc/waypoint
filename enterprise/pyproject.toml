@@ -3,7 +3,7 @@ name = "waypoint-enterprise"
 version = "0.1.75"
 description = "Package for Waypoint Enterprise features"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = "LicenseRef-Proprietary"
 license-files = ["LICENSE.md"]
 authors = [

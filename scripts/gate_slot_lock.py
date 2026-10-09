@@ -58,10 +58,8 @@ def _slot_count() -> int:
     try:
         return int(raw)
     except ValueError:
-        print(
-            f"gate_slot_lock: ignoring non-integer {SLOT_COUNT_ENV}={raw!r}; "
-            f"using {DEFAULT_SLOT_COUNT} slots",
-            file=sys.stderr,
+        sys.stderr.write(
+            f"gate_slot_lock: ignoring non-integer {SLOT_COUNT_ENV}={raw!r}; using {DEFAULT_SLOT_COUNT} slots" + "\n"
         )
         return DEFAULT_SLOT_COUNT
 
@@ -80,12 +78,10 @@ def _try_slot(directory: Path, index: int) -> IO[bytes] | None:
 
 
 def _wait_for_slot(directory: Path, count: int) -> IO[bytes]:
-    print(
-        f"gate_slot_lock: all {count} machine-wide slots are busy; queueing "
-        f"(set {SLOT_COUNT_ENV}=0 to disable)",
-        file=sys.stderr,
-        flush=True,
+    sys.stderr.write(
+        f"gate_slot_lock: all {count} machine-wide slots are busy; queueing (set {SLOT_COUNT_ENV}=0 to disable)" + "\n"
     )
+    sys.stderr.flush()
     with (directory / "turnstile.lock").open("wb") as turnstile:
         fcntl.flock(turnstile, fcntl.LOCK_EX)
         while True:
@@ -122,7 +118,7 @@ def acquire_slot() -> IO[bytes] | None:
     try:
         handle: Final = _locked_handle(count)
     except (OSError, RuntimeError) as error:
-        print(f"gate_slot_lock: locking unavailable ({error}); running unlocked", file=sys.stderr)
+        sys.stderr.write(f"gate_slot_lock: locking unavailable ({error}); running unlocked" + "\n")
         os.environ[HELD_MARKER_ENV] = "1"
         return None
     os.environ[HELD_MARKER_ENV] = "1"
@@ -153,7 +149,7 @@ def _wait_ignoring_interrupts(process: subprocess.Popen[bytes]) -> int:
 
 def main() -> int:
     if len(sys.argv) < 2:
-        print("usage: gate_slot_lock.py <command> [args...]", file=sys.stderr)
+        sys.stderr.write("usage: gate_slot_lock.py <command> [args...]" + "\n")
         return 2
     try:
         held: Final = acquire_slot()
@@ -162,7 +158,7 @@ def main() -> int:
     try:
         code: Final = _wait_ignoring_interrupts(subprocess.Popen(sys.argv[1:]))
     except FileNotFoundError as error:
-        print(f"gate_slot_lock: {error}", file=sys.stderr)
+        sys.stderr.write(f"gate_slot_lock: {error}" + "\n")
         return 127
     if held is not None:
         held.close()

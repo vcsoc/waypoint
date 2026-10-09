@@ -57,11 +57,11 @@ def send_webhook(webhook_url: str, payload: dict) -> None:
         with urllib.request.urlopen(req, timeout=10) as resp:
             resp.read()
     except urllib.error.HTTPError as e:
-        print(f"Webhook HTTP error: {e.code} {e.reason}", file=sys.stderr)
+        sys.stderr.write(f"Webhook HTTP error: {e.code} {e.reason}" + "\n")
     except urllib.error.URLError as e:
-        print(f"Webhook URL error: {e.reason}", file=sys.stderr)
+        sys.stderr.write(f"Webhook URL error: {e.reason}" + "\n")
     except Exception as e:
-        print(f"Webhook unexpected error: {e}", file=sys.stderr)
+        sys.stderr.write(f"Webhook unexpected error: {e}" + "\n")
 
 
 def _excerpt(text: str, max_len: int = 400) -> str:
@@ -77,7 +77,7 @@ def _excerpt(text: str, max_len: int = 400) -> str:
 def main() -> int:
     event = read_event_payload()
     if not event:
-        print("::warning::No event payload found; exiting without labeling.")
+        sys.stdout.write("::warning::No event payload found; exiting without labeling." + "\n")
         return 0
 
     # Read issue details
@@ -113,9 +113,7 @@ def main() -> int:
     # Optional webhook notification
     webhook_url = os.environ.get("PROVIDER_ISSUE_WEBHOOK_URL", "").strip()
     if found and webhook_url:
-        repo_full = (event.get("repository") or {}).get("full_name", "")
         title_part = f"*{title}*" if title else "New issue"
-        author_part = f" by @{author}" if author else ""
         body_preview = _excerpt(body)
         preview_block = f"\n{body_preview}" if body_preview else ""
         payload = {
@@ -130,9 +128,9 @@ def main() -> int:
 
     # Print a short log line for Actions UI
     if found:
-        print(f"Detected provider keywords: {', '.join(matches)}")
+        sys.stdout.write(f"Detected provider keywords: {', '.join(matches)}" + "\n")
     else:
-        print("No provider keywords detected.")
+        sys.stdout.write("No provider keywords detected." + "\n")
 
     return 0
 

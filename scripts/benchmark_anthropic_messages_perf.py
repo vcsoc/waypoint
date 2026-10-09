@@ -31,11 +31,12 @@ import shlex
 import signal
 import statistics
 import subprocess
+import sys
 import tempfile
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Final, Optional
+from typing import Any, Final
 
 import aiohttp
 from aiohttp import web
@@ -81,7 +82,7 @@ class MockAnthropicProvider:
         self.port = port
         self.first_token_delay_ms = first_token_delay_ms
         self.stream_content_chunks = stream_content_chunks
-        self.runner: Optional[web.AppRunner] = None
+        self.runner: web.AppRunner | None = None
 
     @property
     def base_url(self) -> str:
@@ -451,32 +452,35 @@ def stats_to_dict(stats: SummaryStats) -> dict[str, Any]:
 
 
 def print_summary(label: str, revision: str, stats: SummaryStats) -> None:
-    print("\n=== Anthropic /v1/messages streaming benchmark ===")
-    print(f"Label: {label}")
-    print(f"Revision: {revision}")
-    print(f"Requests: {stats.requests}  Failures: {stats.failures}")
-    print(f"TTFT mean:  {stats.ttft_mean_ms:.2f} ms")
-    print(f"TTFT p50:   {stats.ttft_p50_ms:.2f} ms")
-    print(f"TTFT p95:   {stats.ttft_p95_ms:.2f} ms")
-    print(f"TTFT p99:   {stats.ttft_p99_ms:.2f} ms")
-    print(f"Full p50:   {stats.total_p50_ms:.2f} ms")
-    print(f"Full p95:   {stats.total_p95_ms:.2f} ms")
-    print(f"Throughput: {stats.rps:.2f} req/s")
-    print(f"TPM:        {stats.tokens_per_sec:.1f} output tokens/s")
-    print("\nMarkdown row:")
-    print(
-        "| "
-        + " | ".join(
-            [
-                label,
-                revision,
-                f"{stats.ttft_p50_ms:.2f}",
-                f"{stats.ttft_p95_ms:.2f}",
-                f"{stats.tokens_per_sec:.1f}",
-                f"{stats.rps:.2f}",
-            ]
+    sys.stdout.write("\n=== Anthropic /v1/messages streaming benchmark ===" + "\n")
+    sys.stdout.write(f"Label: {label}" + "\n")
+    sys.stdout.write(f"Revision: {revision}" + "\n")
+    sys.stdout.write(f"Requests: {stats.requests}  Failures: {stats.failures}" + "\n")
+    sys.stdout.write(f"TTFT mean:  {stats.ttft_mean_ms:.2f} ms" + "\n")
+    sys.stdout.write(f"TTFT p50:   {stats.ttft_p50_ms:.2f} ms" + "\n")
+    sys.stdout.write(f"TTFT p95:   {stats.ttft_p95_ms:.2f} ms" + "\n")
+    sys.stdout.write(f"TTFT p99:   {stats.ttft_p99_ms:.2f} ms" + "\n")
+    sys.stdout.write(f"Full p50:   {stats.total_p50_ms:.2f} ms" + "\n")
+    sys.stdout.write(f"Full p95:   {stats.total_p95_ms:.2f} ms" + "\n")
+    sys.stdout.write(f"Throughput: {stats.rps:.2f} req/s" + "\n")
+    sys.stdout.write(f"TPM:        {stats.tokens_per_sec:.1f} output tokens/s" + "\n")
+    sys.stdout.write("\nMarkdown row:" + "\n")
+    sys.stdout.write(
+        str(
+            "| "
+            + " | ".join(
+                [
+                    label,
+                    revision,
+                    f"{stats.ttft_p50_ms:.2f}",
+                    f"{stats.ttft_p95_ms:.2f}",
+                    f"{stats.tokens_per_sec:.1f}",
+                    f"{stats.rps:.2f}",
+                ]
+            )
+            + " |"
         )
-        + " |"
+        + "\n"
     )
 
 
@@ -549,8 +553,8 @@ async def async_main() -> None:
         "stream": True,
     }
 
-    provider: Optional[MockAnthropicProvider] = None
-    proxy_process: Optional[subprocess.Popen] = None
+    provider: MockAnthropicProvider | None = None
+    proxy_process: subprocess.Popen | None = None
     with tempfile.TemporaryDirectory(prefix="litellm-anthropic-perf-") as tmp_dir_name:
         tmp_dir = Path(tmp_dir_name)
         proxy_log_path = tmp_dir / "proxy.log"
@@ -583,7 +587,7 @@ async def async_main() -> None:
             runs: list[SummaryStats] = []
             for run_idx in range(max(1, args.repeats)):
                 if args.repeats > 1:
-                    print(f"\n--- Run {run_idx + 1}/{args.repeats} ---")
+                    sys.stdout.write(f"\n--- Run {run_idx + 1}/{args.repeats} ---" + "\n")
                 stats = await run_benchmark(
                     url=proxy_url,
                     headers=headers,
@@ -595,9 +599,9 @@ async def async_main() -> None:
                 )
                 runs.append(stats)
                 if args.repeats > 1:
-                    print(
-                        f"  run {run_idx + 1}: TTFT p50={stats.ttft_p50_ms:.2f}ms "
-                        f"TPM={stats.tokens_per_sec:.1f} tok/s RPS={stats.rps:.2f}"
+                    sys.stdout.write(
+                        f"  run {run_idx + 1}: TTFT p50={stats.ttft_p50_ms:.2f}ms TPM={stats.tokens_per_sec:.1f} tok/s RPS={stats.rps:.2f}"
+                        + "\n"
                     )
 
             stats = sorted(runs, key=lambda s: s.ttft_p50_ms)[len(runs) // 2]

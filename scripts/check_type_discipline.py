@@ -1188,16 +1188,16 @@ def scan_paths(paths: Sequence[Path]) -> tuple[Violation, ...]:
 def main(argv: Sequence[str]) -> int:
     paths: Final = tuple(a for a in argv if not a.startswith("-"))
     if not paths:
-        print("usage: check_type_discipline.py <files-or-dirs>...", file=sys.stderr)
+        sys.stderr.write("usage: check_type_discipline.py <files-or-dirs>..." + "\n")
         return 2
 
     targets: Final = tuple(collect_paths(paths))
     violations: Final = sorted(scan_paths(targets))
     for v in violations:
-        print(v.render())
+        sys.stdout.write(str(v.render()) + "\n")
 
     if violations:
-        print(f"\n{len(violations)} violation(s).", file=sys.stderr)
+        sys.stderr.write(f"\n{len(violations)} violation(s)." + "\n")
         return 1
     return 0
 

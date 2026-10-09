@@ -1,4 +1,3 @@
-# ruff: noqa: T201
 """
 Adaptive router evaluator — LLM-as-judge harness.
 
@@ -23,7 +22,6 @@ import asyncio
 import sys
 import uuid
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
 
 import httpx
 
@@ -38,7 +36,7 @@ class EvalCase:
     ideal: str          # criteria the judge checks the response against
 
 
-EVAL_CASES: List[EvalCase] = [
+EVAL_CASES: list[EvalCase] = [
     # code_generation
     EvalCase(
         category="code_generation",
@@ -86,10 +84,7 @@ EVAL_CASES: List[EvalCase] = [
     # writing
     EvalCase(
         category="writing",
-        prompt=(
-            "Write a short, polite email declining a meeting request because of "
-            "a scheduling conflict."
-        ),
+        prompt=("Write a short, polite email declining a meeting request because of a scheduling conflict."),
         ideal=(
             "A professional email that: (1) thanks the sender for the invitation, "
             "(2) clearly declines, (3) mentions a scheduling conflict as the reason, "
@@ -138,14 +133,14 @@ async def _chat(
     proxy_url: str,
     api_key: str,
     model: str,
-    messages: List[Dict[str, str]],
-    session_id: Optional[str] = None,
-) -> Tuple[str, str]:
+    messages: list[dict[str, str]],
+    session_id: str | None = None,
+) -> tuple[str, str]:
     """
     Returns (response_text, chosen_model_header).
     chosen_model_header is empty for non-router calls.
     """
-    body: Dict = {"model": model, "messages": messages}
+    body: dict = {"model": model, "messages": messages}
     if session_id:
         body["metadata"] = {"litellm_session_id": session_id}
 
@@ -176,8 +171,8 @@ async def evaluate(
 
     async with httpx.AsyncClient() as client:
         for i, case in enumerate(EVAL_CASES, 1):
-            print(f"\n[{i}/{len(EVAL_CASES)}] category={case.category}")
-            print(f"  prompt   : {case.prompt[:80]}{'…' if len(case.prompt) > 80 else ''}")
+            sys.stdout.write(f"\n[{i}/{len(EVAL_CASES)}] category={case.category}" + "\n")
+            sys.stdout.write(f"  prompt   : {case.prompt[:80]}{('…' if len(case.prompt) > 80 else '')}" + "\n")
 
             session_id = f"eval-{uuid.uuid4()}"
 
@@ -189,12 +184,14 @@ async def evaluate(
                     session_id=session_id,
                 )
             except Exception as exc:  # noqa: BLE001
-                print(f"  ERROR calling router: {exc}", file=sys.stderr)
+                sys.stderr.write(f"  ERROR calling router: {exc}" + "\n")
                 failed += 1
                 continue
 
-            print(f"  model    : {chosen or router}")
-            print(f"  response : {response[:120].replace(chr(10), ' ')}{'…' if len(response) > 120 else ''}")
+            sys.stdout.write(f"  model    : {chosen or router}" + "\n")
+            sys.stdout.write(
+                f"  response : {response[:120].replace(chr(10), ' ')}{('…' if len(response) > 120 else '')}" + "\n"
+            )
 
             # Judge the real response.
             judge_msgs = [
@@ -206,7 +203,7 @@ async def evaluate(
                     client, proxy_url, api_key, judge_model, judge_msgs,
                 )
             except Exception as exc:  # noqa: BLE001
-                print(f"  ERROR calling judge: {exc}", file=sys.stderr)
+                sys.stderr.write(f"  ERROR calling judge: {exc}" + "\n")
                 failed += 1
                 continue
 
@@ -218,10 +215,10 @@ async def evaluate(
 
             if is_pass:
                 passed += 1
-                print(f"  verdict  : \033[32mPASS\033[0m  {reason}")
+                sys.stdout.write(f"  verdict  : \x1b[32mPASS\x1b[0m  {reason}" + "\n")
             else:
                 failed += 1
-                print(f"  verdict  : \033[31mFAIL\033[0m  {reason}")
+                sys.stdout.write(f"  verdict  : \x1b[31mFAIL\x1b[0m  {reason}" + "\n")
 
             # Round 2: 5-message conversation on the same session_id so the bandit fires.
             # On PASS → satisfaction follow-up (+alpha). On FAIL → neutral (no signal).
@@ -239,18 +236,18 @@ async def evaluate(
                     session_id=session_id,
                 )
             except Exception as exc:  # noqa: BLE001
-                print(f"  WARNING: bandit update failed: {exc}", file=sys.stderr)
+                sys.stderr.write(f"  WARNING: bandit update failed: {exc}" + "\n")
 
     total = passed + failed
-    print(f"\n{'='*60}")
-    print(f"Results: {passed}/{total} passed  ({failed} failed)")
+    sys.stdout.write(f"\n{'=' * 60}" + "\n")
+    sys.stdout.write(f"Results: {passed}/{total} passed  ({failed} failed)" + "\n")
     if passed == total:
-        print("All test cases passed — the adaptive router is working well!")
+        sys.stdout.write("All test cases passed — the adaptive router is working well!" + "\n")
     elif passed >= total * 0.8:
-        print("Most test cases passed — minor issues to investigate.")
+        sys.stdout.write("Most test cases passed — minor issues to investigate." + "\n")
     else:
-        print("Significant failures — check router config and model availability.")
-    print("=" * 60)
+        sys.stdout.write("Significant failures — check router config and model availability." + "\n")
+    sys.stdout.write(str("=" * 60) + "\n")
 
 
 # ---------------------------------------------------------------------------

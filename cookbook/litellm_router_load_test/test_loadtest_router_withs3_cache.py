@@ -27,10 +27,10 @@ async def call_acompletion(semaphore, router: Router, input_data):
             # Use asyncio.wait_for to set a timeout for the task
             response = await router.acompletion(**input_data)
             # Handle the response as needed
-            print(response)
+            sys.stdout.write(str(response) + "\n")
             return response
         except Timeout:
-            print(f"Task timed out: {input_data}")
+            sys.stdout.write(f"Task timed out: {input_data}" + "\n")
             return None  # You may choose to return something else or raise an exception
 
 
@@ -83,12 +83,12 @@ async def main():
     end_time_all_tasks = time.time()
     # Calculate the total time for all tasks
     total_time_all_tasks = end_time_all_tasks - start_time_all_tasks
-    print(f"Total time for all tasks: {total_time_all_tasks} seconds")
+    sys.stdout.write(f"Total time for all tasks: {total_time_all_tasks} seconds" + "\n")
 
     # Calculate the average time per response
     average_time_per_response = total_time_all_tasks / len(responses)
-    print(f"Average time per response: {average_time_per_response} seconds")
-    print(f"NUMBER OF COMPLETED TASKS: {len(responses)}")
+    sys.stdout.write(f"Average time per response: {average_time_per_response} seconds" + "\n")
+    sys.stdout.write(f"NUMBER OF COMPLETED TASKS: {len(responses)}" + "\n")
 
 
 # Run the main function

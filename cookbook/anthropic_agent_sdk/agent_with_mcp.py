@@ -7,6 +7,7 @@ with MCP (Model Context Protocol) server integration for enhanced capabilities.
 
 import asyncio
 import os
+import sys
 
 from claude_agent_sdk import ClaudeAgentOptions, ClaudeSDKClient
 from common import (
@@ -41,7 +42,7 @@ async def interactive_chat_with_mcp():
     use_mcp = os.getenv("USE_MCP", "true").lower() == "true"
 
     if not use_mcp:
-        print("⚠️  MCP disabled via USE_MCP=false")
+        sys.stdout.write("⚠️  MCP disabled via USE_MCP=false" + "\n")
 
     print_header(litellm_base_url, current_model, has_mcp=use_mcp)
 
@@ -66,8 +67,8 @@ async def interactive_chat_with_mcp():
                     },
                 )
             except Exception as e:
-                print(f"⚠️  Warning: Could not configure MCP server: {e}")
-                print("Continuing without MCP...\n")
+                sys.stdout.write(f"⚠️  Warning: Could not configure MCP server: {e}" + "\n")
+                sys.stdout.write("Continuing without MCP...\n" + "\n")
                 use_mcp = False
                 options = ClaudeAgentOptions(
                     system_prompt="You are a helpful AI assistant. Be concise, accurate, and friendly.",
@@ -92,16 +93,16 @@ async def interactive_chat_with_mcp():
                     try:
                         user_input = input("\n👤 You: ").strip()
                     except (EOFError, KeyboardInterrupt):
-                        print("\n\n👋 Goodbye!")
+                        sys.stdout.write("\n\n👋 Goodbye!" + "\n")
                         return
 
                     # Handle commands
                     if user_input.lower() in ["quit", "exit"]:
-                        print("\n👋 Goodbye!")
+                        sys.stdout.write("\n👋 Goodbye!" + "\n")
                         return
 
                     if user_input.lower() == "clear":
-                        print("\n🔄 Starting new conversation...\n")
+                        sys.stdout.write("\n🔄 Starting new conversation...\n" + "\n")
                         conversation_active = False
                         continue
 
@@ -125,11 +126,11 @@ async def interactive_chat_with_mcp():
                     await stream_response(client, user_input)
 
         except Exception as e:
-            print(f"\n❌ Error creating agent client: {e}")
-            print("This might be an MCP configuration issue. Try running without MCP:")
-            print("  USE_MCP=false python agent_with_mcp.py")
-            print("\nOr use the basic agent:")
-            print("  python main.py")
+            sys.stdout.write(f"\n❌ Error creating agent client: {e}" + "\n")
+            sys.stdout.write("This might be an MCP configuration issue. Try running without MCP:" + "\n")
+            sys.stdout.write("  USE_MCP=false python agent_with_mcp.py" + "\n")
+            sys.stdout.write("\nOr use the basic agent:" + "\n")
+            sys.stdout.write("  python main.py" + "\n")
             return
 
 
@@ -138,7 +139,7 @@ def main():
     try:
         asyncio.run(interactive_chat_with_mcp())
     except KeyboardInterrupt:
-        print("\n\n👋 Goodbye!")
+        sys.stdout.write("\n\n👋 Goodbye!" + "\n")
 
 
 if __name__ == "__main__":

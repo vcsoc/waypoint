@@ -1,3 +1,5 @@
+import sys
+
 import requests
 
 
@@ -46,17 +48,17 @@ def make_request(proxy_base_url, master_key, data):
         "Authorization": f"Bearer {master_key}",
     }
 
-    response = requests.post(url, headers=headers, json=data)
+    response = requests.post(url, headers=headers, json=data, timeout=30)
 
-    print(f"Status Code: {response.status_code}")
-    print(f"Response from adding model: {response.text}")
+    sys.stdout.write(f"Status Code: {response.status_code}" + "\n")
+    sys.stdout.write(f"Response from adding model: {response.text}" + "\n")
 
 
 def main():
     proxy_base_url, master_key = get_initial_config()
 
     while True:
-        print("Adding new Model to your proxy server...")
+        sys.stdout.write("Adding new Model to your proxy server..." + "\n")
         data = get_user_input()
         make_request(proxy_base_url, master_key, data)
 
@@ -64,7 +66,7 @@ def main():
         if add_another != "yes":
             break
 
-    print("Script finished.")
+    sys.stdout.write("Script finished." + "\n")
 
 
 if __name__ == "__main__":

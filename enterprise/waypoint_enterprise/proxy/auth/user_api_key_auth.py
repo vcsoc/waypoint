@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 from fastapi import Request
 
@@ -6,9 +6,7 @@ from waypoint._logging import verbose_proxy_logger
 from waypoint.proxy._types import ProxyException, UserAPIKeyAuth
 
 
-async def enterprise_custom_auth(
-    request: Request, api_key: str, user_custom_auth: Optional[Any]
-) -> Optional[UserAPIKeyAuth]:
+async def enterprise_custom_auth(request: Request, api_key: str, user_custom_auth: Any | None) -> UserAPIKeyAuth | None:
     from waypoint_enterprise.proxy.proxy_server import custom_auth_settings
 
     if user_custom_auth is None:

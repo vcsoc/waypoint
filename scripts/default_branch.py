@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import os
 import subprocess
+import sys
 from pathlib import Path
 from typing import Final
 
@@ -54,7 +55,9 @@ def main() -> None:
     parser.add_argument("--repo-root", type=Path, default=Path.cwd())
     parser.add_argument("--branch", action="store_true", help="Print only the default branch name, without fetching")
     args: Final = parser.parse_args()
-    print(default_branch(args.repo_root) if args.branch else resolve_base_ref(args.base, args.repo_root))
+    sys.stdout.write(
+        str(default_branch(args.repo_root) if args.branch else resolve_base_ref(args.base, args.repo_root)) + "\n"
+    )
 
 
 if __name__ == "__main__":

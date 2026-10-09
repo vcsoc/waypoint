@@ -9,6 +9,7 @@ and Azure realtime APIs without changing your agent code.
 import asyncio
 import json
 import os
+import sys
 
 import websockets
 
@@ -29,22 +30,22 @@ async def run_voice_agent():
     url = f"ws://{PROXY_URL.replace('http://', '').replace('https://', '')}/v1/realtime?model={MODEL}"
     headers = {"Authorization": f"Bearer {API_KEY}"}
 
-    print(f"🎙️  Connecting to voice agent...")
-    print(f"   Model: {MODEL}")
-    print(f"   Proxy: {PROXY_URL}")
-    print()
+    sys.stdout.write("🎙️  Connecting to voice agent..." + "\n")
+    sys.stdout.write(f"   Model: {MODEL}" + "\n")
+    sys.stdout.write(f"   Proxy: {PROXY_URL}" + "\n")
+    sys.stdout.write("" + "\n")
 
     async with websockets.connect(url, additional_headers=headers) as ws:
         # Receive initial connection event
         initial = json.loads(await ws.recv())
-        print(f"✅ Connected! Event: {initial['type']}\n")
+        sys.stdout.write(f"✅ Connected! Event: {initial['type']}\n" + "\n")
 
         # Get user input
         user_message = input("💬 Your message: ").strip()
         if not user_message:
             user_message = "Tell me a fun fact about AI!"
 
-        print(f"\n🤖 Sending to {MODEL}...\n")
+        sys.stdout.write(f"\n🤖 Sending to {MODEL}...\n" + "\n")
 
         # Send user message
         await ws.send(
@@ -71,7 +72,8 @@ async def run_voice_agent():
         )
 
         # Stream response
-        print("🎤 Response: ", end="", flush=True)
+        sys.stdout.write("🎤 Response: ")
+        sys.stdout.flush()
         transcript = []
 
         try:
@@ -83,7 +85,8 @@ async def run_voice_agent():
                 if event["type"] == "response.output_audio_transcript.delta":
                     delta = event.get("delta", "")
                     if delta:
-                        print(delta, end="", flush=True)
+                        sys.stdout.write(str(delta))
+                        sys.stdout.flush()
                         transcript.append(delta)
 
                 # Done when response completes
@@ -93,29 +96,29 @@ async def run_voice_agent():
         except asyncio.TimeoutError:
             pass
 
-        print("\n")
+        sys.stdout.write("\n" + "\n")
 
         if transcript:
-            print(f"✅ Complete response: {''.join(transcript)}")
+            sys.stdout.write(f"✅ Complete response: {''.join(transcript)}" + "\n")
 
         await ws.close()
 
 
 def main():
     """Run the voice agent"""
-    print("=" * 70)
-    print("LiveKit xAI Voice Agent via Waypoint Proxy")
-    print("=" * 70)
-    print()
+    sys.stdout.write(str("=" * 70) + "\n")
+    sys.stdout.write("LiveKit xAI Voice Agent via Waypoint Proxy" + "\n")
+    sys.stdout.write(str("=" * 70) + "\n")
+    sys.stdout.write("" + "\n")
 
     try:
         asyncio.run(run_voice_agent())
     except KeyboardInterrupt:
-        print("\n\n👋 Goodbye!")
+        sys.stdout.write("\n\n👋 Goodbye!" + "\n")
     except Exception as e:
-        print(f"\n❌ Error: {e}")
-        print("\nMake sure Waypoint proxy is running:")
-        print(f"  litellm --config config.yaml --port 4000")
+        sys.stdout.write(f"\n❌ Error: {e}" + "\n")
+        sys.stdout.write("\nMake sure Waypoint proxy is running:" + "\n")
+        sys.stdout.write("  litellm --config config.yaml --port 4000" + "\n")
 
 
 if __name__ == "__main__":

@@ -38,14 +38,13 @@ import asyncio
 import random
 import sys
 import uuid
-from typing import Dict, List, Tuple
 
 import httpx
 
 # ---- prompts (paired with the RequestType the classifier will assign) ----
 # Each prompt is engineered to (a) classify into the listed type and (b) make
 # sense as a user request. Keep prompts short to limit token cost.
-PROMPTS: Dict[str, List[str]] = {
+PROMPTS: dict[str, list[str]] = {
     "code_generation": [
         "Write a Python function that flattens a nested list",
         "Create a TypeScript function that debounces another function",
@@ -70,10 +69,10 @@ PROMPTS: Dict[str, List[str]] = {
 #   (1) match the satisfaction regex (thanks/great/works/perfect/etc.), AND
 #   (2) re-classify into the SAME RequestType as the first prompt
 # so that signals attribute to the right (type, model) bandit cell.
-SATISFY: Dict[str, str] = {
+SATISFY: dict[str, str] = {
     "code_generation": "thanks, that works! now write me a python function that does the inverse",
-    "factual_lookup":  "perfect, thanks! who is the current prime minister?",
-    "writing":         "great, thanks! now write a follow-up email confirming attendance",
+    "factual_lookup": "perfect, thanks! who is the current prime minister?",
+    "writing": "great, thanks! now write a follow-up email confirming attendance",
 }
 
 # Neutral follow-up — does not match any signal regex, does not move the bandit.
@@ -81,17 +80,17 @@ NEUTRAL_FOLLOWUP = "ok, noted"
 
 # Oracle: P(success | request_type, model). Tunable.
 # Defaults: smart dominates code/writing; both are fine for factual_lookup.
-ORACLE: Dict[str, Dict[str, float]] = {
+ORACLE: dict[str, dict[str, float]] = {
     "code_generation": {"smart": 0.92, "fast": 0.35},
-    "factual_lookup":  {"smart": 0.90, "fast": 0.85},
-    "writing":         {"smart": 0.85, "fast": 0.55},
+    "factual_lookup": {"smart": 0.90, "fast": 0.85},
+    "writing": {"smart": 0.85, "fast": 0.55},
 }
 
 # Fabricated assistant turn — content doesn't matter for the hook, only the role.
 FAB_ASSISTANT = "Got it. Working on that now."
 
 
-def _build_messages(prompt: str, last_user: str) -> List[Dict[str, str]]:
+def _build_messages(prompt: str, last_user: str) -> list[dict[str, str]]:
     """5-message conversation that passes the SIGNAL_GATE_MIN_MESSAGES=4 gate."""
     return [
         {"role": "user",      "content": prompt},
@@ -108,9 +107,9 @@ async def _send(
     api_key: str,
     router: str,
     session_id: str,
-    messages: List[Dict[str, str]],
+    messages: list[dict[str, str]],
     mock_response: str,
-) -> Tuple[bool, str]:
+) -> tuple[bool, str]:
     """Returns (ok, chosen_model)."""
     body = {
         "model": router,
@@ -127,7 +126,7 @@ async def _send(
         )
         r.raise_for_status()
     except Exception as e:  # noqa: BLE001
-        print(f"  request failed: {e}", file=sys.stderr)
+        sys.stderr.write(f"  request failed: {e}" + "\n")
         return False, ""
     chosen = r.headers.get("x-litellm-adaptive-router-model", "")
     return True, chosen
@@ -194,14 +193,14 @@ async def main() -> None:
 
     types = [t.strip() for t in args.types.split(",") if t.strip() in PROMPTS]
     if not types:
-        print(f"ERROR: no valid types. Choose from: {list(PROMPTS)}", file=sys.stderr)
+        sys.stderr.write(f"ERROR: no valid types. Choose from: {list(PROMPTS)}" + "\n")
         sys.exit(2)
 
-    print(f"driving {args.rounds} sessions across types: {types}")
-    print(f"oracle: {ORACLE}")
-    print(f"proxy: {args.proxy_url}  router: {args.router}\n")
+    sys.stdout.write(f"driving {args.rounds} sessions across types: {types}" + "\n")
+    sys.stdout.write(f"oracle: {ORACLE}" + "\n")
+    sys.stdout.write(f"proxy: {args.proxy_url}  router: {args.router}\n" + "\n")
 
-    counts: Dict[Tuple[str, str], int] = {}
+    counts: dict[tuple[str, str], int] = {}
     async with httpx.AsyncClient() as client:
         for i in range(args.rounds):
             rt = random.choice(types)
@@ -215,12 +214,12 @@ async def main() -> None:
                 summary = ", ".join(
                     f"{rt}/{m}={n}" for (rt, m), n in sorted(counts.items())
                 )
-                print(f"  round {i + 1}/{args.rounds}  picks: {summary}")
+                sys.stdout.write(f"  round {i + 1}/{args.rounds}  picks: {summary}" + "\n")
             await asyncio.sleep(args.rate)
 
-    print("\nfinal pick distribution:")
+    sys.stdout.write("\nfinal pick distribution:" + "\n")
     for (rt, m), n in sorted(counts.items()):
-        print(f"  {rt:22s} → {m:8s}  {n}")
+        sys.stdout.write(f"  {rt:22s} → {m:8s}  {n}" + "\n")
 
 
 if __name__ == "__main__":

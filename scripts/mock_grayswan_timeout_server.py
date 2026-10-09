@@ -15,7 +15,6 @@ import json
 import logging
 import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from typing import Optional
 
 LOG = logging.getLogger("mock_grayswan")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -28,7 +27,7 @@ class SlowHandler(BaseHTTPRequestHandler):
         """Route handler logs through the logging module."""
         LOG.info("%s - %s", self.address_string(), fmt % args)
 
-    def _read_body(self) -> Optional[bytes]:
+    def _read_body(self) -> bytes | None:
         content_length = self.headers.get("content-length")
         if content_length is None:
             return None
@@ -38,7 +37,7 @@ class SlowHandler(BaseHTTPRequestHandler):
             return None
         return self.rfile.read(length)
 
-    def do_POST(self) -> None:  # noqa: N802
+    def do_POST(self) -> None:
         if self.path != "/cygnal/monitor":
             self.send_error(404, "Not Found")
             return

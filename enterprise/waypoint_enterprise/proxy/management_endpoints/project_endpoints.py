@@ -641,7 +641,7 @@ async def new_project(
         return response
     except Exception as e:
         verbose_proxy_logger.exception(
-            "waypoint.proxy.management_endpoints.project_endpoints.new_project(): Exception occured - {}".format(str(e))
+            f"waypoint.proxy.management_endpoints.project_endpoints.new_project(): Exception occured - {e!s}"
         )
         raise handle_exception_on_proxy(e)
 
@@ -834,7 +834,7 @@ async def update_project(
                 },
             )
             # Remove budget fields from project update
-            for field in budget_updates.keys():
+            for field in budget_updates:
                 update_data.pop(field, None)
 
         # Handle object permissions
@@ -881,9 +881,7 @@ async def update_project(
         return updated_project
     except Exception as e:
         verbose_proxy_logger.exception(
-            "waypoint.proxy.management_endpoints.project_endpoints.update_project(): Exception occured - {}".format(
-                str(e)
-            )
+            f"waypoint.proxy.management_endpoints.project_endpoints.update_project(): Exception occured - {e!s}"
         )
         raise handle_exception_on_proxy(e)
 
@@ -990,9 +988,7 @@ async def delete_project(
         return deleted_projects
     except Exception as e:
         verbose_proxy_logger.exception(
-            "waypoint.proxy.management_endpoints.project_endpoints.delete_project(): Exception occured - {}".format(
-                str(e)
-            )
+            f"waypoint.proxy.management_endpoints.project_endpoints.delete_project(): Exception occured - {e!s}"
         )
         raise handle_exception_on_proxy(e)
 
@@ -1052,7 +1048,7 @@ async def project_info(
         return project
     except Exception as e:
         verbose_proxy_logger.exception(
-            "waypoint.proxy.management_endpoints.project_endpoints.project_info(): Exception occured - {}".format(str(e))
+            f"waypoint.proxy.management_endpoints.project_endpoints.project_info(): Exception occured - {e!s}"
         )
         raise handle_exception_on_proxy(e)
 
@@ -1105,8 +1101,6 @@ async def list_projects(
         return projects
     except Exception as e:
         verbose_proxy_logger.exception(
-            "waypoint.proxy.management_endpoints.project_endpoints.list_projects(): Exception occured - {}".format(
-                str(e)
-            )
+            f"waypoint.proxy.management_endpoints.project_endpoints.list_projects(): Exception occured - {e!s}"
         )
         raise handle_exception_on_proxy(e)

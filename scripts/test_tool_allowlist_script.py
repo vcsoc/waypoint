@@ -61,11 +61,11 @@ def test_extraction():
             {"tools": [{"type": "function", "function": {"name": "x"}}]},
         ),
     ]
-    print("=== extract_request_tool_names(route, data) ===\n")
+    sys.stdout.write("=== extract_request_tool_names(route, data) ===\n" + "\n")
     for label, route, data in cases:
         names = extract_request_tool_names(route, data)
-        print(f"  {label}: {names}")
-    print()
+        sys.stdout.write(f"  {label}: {names}" + "\n")
+    sys.stdout.write("" + "\n")
 
 
 async def test_check_tools_allowlist():
@@ -84,7 +84,7 @@ async def test_check_tools_allowlist():
             team_metadata=team_metadata or {},
         )
 
-    print("=== check_tools_allowlist (auth) ===\n")
+    sys.stdout.write("=== check_tools_allowlist (auth) ===\n" + "\n")
 
     # No allowlist -> pass
     await check_tools_allowlist(
@@ -95,7 +95,7 @@ async def test_check_tools_allowlist():
         team_object=None,
         route="/v1/chat/completions",
     )
-    print("  No allowlist, body has tools: PASS")
+    sys.stdout.write("  No allowlist, body has tools: PASS" + "\n")
 
     # Allowed tool -> pass
     await check_tools_allowlist(
@@ -106,7 +106,7 @@ async def test_check_tools_allowlist():
         team_object=None,
         route="/v1/chat/completions",
     )
-    print("  allowed_tools=['get_weather'], body has get_weather: PASS")
+    sys.stdout.write("  allowed_tools=['get_weather'], body has get_weather: PASS" + "\n")
 
     # Disallowed tool -> raise
     try:
@@ -118,16 +118,16 @@ async def test_check_tools_allowlist():
             team_object=None,
             route="/v1/chat/completions",
         )
-        print("  DISALLOWED: expected ProxyException")
+        sys.stdout.write("  DISALLOWED: expected ProxyException" + "\n")
     except ProxyException as e:
         if e.type == ProxyErrorTypes.tool_access_denied:
-            print(
-                "  allowed_tools=['other_tool'], body has get_weather: PASS (raised tool_access_denied)"
+            sys.stdout.write(
+                "  allowed_tools=['other_tool'], body has get_weather: PASS (raised tool_access_denied)" + "\n"
             )
         else:
-            print(f"  Unexpected ProxyException type: {e.type}")
+            sys.stdout.write(f"  Unexpected ProxyException type: {e.type}" + "\n")
     except Exception as e:
-        print(f"  Unexpected: {e}")
+        sys.stdout.write(f"  Unexpected: {e}" + "\n")
 
     # Team allowlist when key empty
     await check_tools_allowlist(
@@ -138,18 +138,16 @@ async def test_check_tools_allowlist():
         team_object=None,
         route="/v1/chat/completions",
     )
-    print("  team_metadata.allowed_tools=['get_weather']: PASS")
-    print()
+    sys.stdout.write("  team_metadata.allowed_tools=['get_weather']: PASS" + "\n")
+    sys.stdout.write("" + "\n")
 
 
 def main():
-    print("Tool allowlist / tool name extraction – script checks\n")
+    sys.stdout.write("Tool allowlist / tool name extraction – script checks\n" + "\n")
     test_extraction()
     asyncio.run(test_check_tools_allowlist())
-    print("Done. For full unit tests run:")
-    print(
-        "  uv run pytest tests/unit/proxy/test_tools_allowlist_enforcement.py -v"
-    )
+    sys.stdout.write("Done. For full unit tests run:" + "\n")
+    sys.stdout.write("  uv run pytest tests/unit/proxy/test_tools_allowlist_enforcement.py -v" + "\n")
 
 
 if __name__ == "__main__":

@@ -6,15 +6,12 @@ This script runs the LLM translation tests and generates a comprehensive
 markdown report with provider-specific breakdowns and test statistics.
 """
 
-import json
 import os
 import subprocess
 import sys
 import xml.etree.ElementTree as ET
 from collections import defaultdict
 from datetime import datetime
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 
 
 # ANSI color codes for terminal output
@@ -30,7 +27,8 @@ class Colors:
 
 def print_colored(message: str, color: str = Colors.RESET):
     """Print colored message to terminal"""
-    print(f"{color}{message}{Colors.RESET}")
+    sys.stdout.write(f"{color}{message}{Colors.RESET}" + "\n")
+
 
 def get_provider_from_test_file(test_file: str) -> str:
     """Map test file names to provider names"""
@@ -322,8 +320,8 @@ def run_tests(test_path: str = "tests/llm_translation/",
     print_colored("Starting LLM Translation Tests", Colors.BOLD + Colors.BLUE)
     print_colored(f"Test directory: {test_path}", Colors.CYAN)
     print_colored(f"Output: {junit_xml}", Colors.CYAN)
-    print()
-    
+    sys.stdout.write("" + "\n")
+
     # Run pytest
     cmd = [
         "uv", "run", "--no-sync", "pytest", test_path,
@@ -339,24 +337,24 @@ def run_tests(test_path: str = "tests/llm_translation/",
         subprocess.run(["uv", "run", "--no-sync", "python", "-c", "import pytest_timeout"], 
                       capture_output=True, check=True)
         cmd.extend(["--timeout=300"])
-    except:
+    except (OSError, subprocess.CalledProcessError):
         print_colored("Warning: pytest-timeout not installed, skipping timeout option", Colors.YELLOW)
     
     print_colored("Running pytest with command:", Colors.YELLOW)
-    print(f"   {' '.join(cmd)}")
-    print()
-    
+    sys.stdout.write(f"   {' '.join(cmd)}" + "\n")
+    sys.stdout.write("" + "\n")
+
     # Run the tests
     result = subprocess.run(cmd, capture_output=False)
     
     # Generate the report regardless of test outcome
     if os.path.exists(junit_xml):
-        print()
+        sys.stdout.write("" + "\n")
         print_colored("Generating test report...", Colors.BLUE)
         generate_markdown_report(junit_xml, report_path, tag, commit)
         
         # Print summary to console
-        print()
+        sys.stdout.write("" + "\n")
         print_colored("Test Summary:", Colors.BOLD + Colors.PURPLE)
         
         # Parse XML for quick summary
@@ -373,8 +371,8 @@ def run_tests(test_path: str = "tests/llm_translation/",
         errors = sum(int(s.get('errors', 0)) for s in suites)
         skipped = sum(int(s.get('skipped', 0)) for s in suites)
         passed = total - failures - errors - skipped
-        
-        print(f"   Total:   {total}")
+
+        sys.stdout.write(f"   Total:   {total}" + "\n")
         print_colored(f"   Passed:  {passed}", Colors.GREEN)
         if failures > 0:
             print_colored(f"   Failed:  {failures}", Colors.RED)
@@ -389,8 +387,8 @@ def run_tests(test_path: str = "tests/llm_translation/",
             print_colored(f"   Pass Rate: {pass_rate:.1f}%", color)
     else:
         print_colored("No test results found!", Colors.RED)
-    
-    print()
+
+    sys.stdout.write("" + "\n")
     print_colored("Test run complete!", Colors.BOLD + Colors.GREEN)
     
     return result.returncode
@@ -417,7 +415,7 @@ if __name__ == "__main__":
                                     capture_output=True, text=True)
             if result.returncode == 0:
                 args.commit = result.stdout.strip()
-        except:
+        except OSError:
             pass
     
     if not args.tag:
@@ -426,7 +424,7 @@ if __name__ == "__main__":
                                     capture_output=True, text=True)
             if result.returncode == 0:
                 args.tag = result.stdout.strip()
-        except:
+        except OSError:
             pass
     
     exit_code = run_tests(

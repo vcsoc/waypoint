@@ -46,9 +46,7 @@ class ENTERPRISE_BannedKeywords(CustomLogger):
                     f"File not found. banned_keywords_list={banned_keywords_list}"
                 )
             except Exception as e:
-                raise Exception(
-                    f"An error occurred: {str(e)}, banned_keywords_list={banned_keywords_list}"
-                )
+                raise Exception(f"An error occurred: {e!s}, banned_keywords_list={banned_keywords_list}")
 
     def print_verbose(self, print_statement, level: Literal["INFO", "DEBUG"] = "DEBUG"):
         if level == "INFO":
@@ -57,7 +55,7 @@ class ENTERPRISE_BannedKeywords(CustomLogger):
             verbose_proxy_logger.debug(print_statement)
 
         if waypoint.set_verbose is True:
-            print(print_statement)  # noqa
+            print(print_statement)  # noqa: T201  # Legacy set_verbose also emits to stdout
 
     def test_violation(self, test_str: str):
         for word in self.banned_keywords_list:
@@ -88,9 +86,7 @@ class ENTERPRISE_BannedKeywords(CustomLogger):
             raise e
         except Exception as e:
             verbose_proxy_logger.exception(
-                "waypoint.enterprise.enterprise_hooks.banned_keywords::async_pre_call_hook - Exception occurred - {}".format(
-                    str(e)
-                )
+                f"waypoint.enterprise.enterprise_hooks.banned_keywords::async_pre_call_hook - Exception occurred - {e!s}"
             )
 
     async def async_post_call_success_hook(

@@ -50,8 +50,9 @@ import argparse
 import base64
 import json
 from binascii import crc32
+from collections.abc import Iterator
 from struct import pack
-from typing import Any, Dict, Iterator, List
+from typing import Any
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
@@ -61,7 +62,7 @@ app = FastAPI(title="Mock Bedrock runtime (pass-through test target)")
 
 
 # Minimal structure compatible with Converse: https://docs.aws.amazon.com/bedrock/latest/APIReference/API_Converse.html
-def _converse_response_body() -> Dict[str, Any]:
+def _converse_response_body() -> dict[str, Any]:
     return {
         "output": {
             "message": {
@@ -81,7 +82,7 @@ def _converse_response_body() -> Dict[str, Any]:
 
 
 # Minimal invoke (Anthropic messages on bedrock) style — adjust if you test /invoke
-def _invoke_response_body() -> Dict[str, Any]:
+def _invoke_response_body() -> dict[str, Any]:
     return {
         "id": "msg_mock",
         "type": "message",
@@ -93,7 +94,7 @@ def _invoke_response_body() -> Dict[str, Any]:
     }
 
 
-def _encode_event_stream_message(headers: Dict[str, str], payload: bytes) -> bytes:
+def _encode_event_stream_message(headers: dict[str, str], payload: bytes) -> bytes:
     """Single AWS binary event-stream frame (same layout botocore's ``EventStreamBuffer`` parses)."""
     header_blob = b""
     for name, value in headers.items():
@@ -111,7 +112,7 @@ def _encode_event_stream_message(headers: Dict[str, str], payload: bytes) -> byt
     return wo_msg_crc + pack("!I", msg_crc_val)
 
 
-def _bedrock_payload_part(inner_event: Dict[str, Any]) -> bytes:
+def _bedrock_payload_part(inner_event: dict[str, Any]) -> bytes:
     """Outer JSON expected by bedrock-runtime ``ResponseStream`` / ``PayloadPart``."""
     inner_bytes = json.dumps(inner_event, separators=(",", ":")).encode("utf-8")
     outer = {
@@ -122,9 +123,7 @@ def _bedrock_payload_part(inner_event: Dict[str, Any]) -> bytes:
     return json.dumps(outer, separators=(",", ":")).encode("utf-8")
 
 
-def _anthropic_invoke_stream_events(
-    model_id: str, assistant_text: str
-) -> List[Dict[str, Any]]:
+def _anthropic_invoke_stream_events(model_id: str, assistant_text: str) -> list[dict[str, Any]]:
     """
     Minimal Anthropic Messages stream events as returned inside Bedrock stream chunks.
     Mirrors the sequence Amazon emits for Claude on ``invoke-with-response-stream``.
@@ -132,7 +131,7 @@ def _anthropic_invoke_stream_events(
     msg_id = "msg_mock_bedrock_stream"
     input_tokens = 3
     output_tokens = max(1, len(assistant_text) // 4)
-    events: List[Dict[str, Any]] = [
+    events: list[dict[str, Any]] = [
         {
             "type": "message_start",
             "message": {
@@ -216,7 +215,7 @@ def _iter_invoke_with_response_stream(model_id: str) -> Iterator[bytes]:
 
 
 @app.get("/health")
-def health() -> Dict[str, str]:
+def health() -> dict[str, str]:
     return {"status": "ok"}
 
 

@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import Field
 
@@ -16,14 +16,14 @@ class AuditLogResponse(LiteLLMBaseModel):
     action: str
     table_name: str
     object_id: str
-    before_value: Optional[Dict[str, Any]] = None
-    updated_values: Optional[Dict[str, Any]] = None
+    before_value: dict[str, Any] | None = None
+    updated_values: dict[str, Any] | None = None
 
 
 class PaginatedAuditLogResponse(LiteLLMBaseModel):
     """Response model for paginated audit logs"""
 
-    audit_logs: List[AuditLogResponse]
+    audit_logs: list[AuditLogResponse]
     total: int = Field(
         ..., description="Total number of audit logs matching the filters"
     )

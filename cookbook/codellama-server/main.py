@@ -1,6 +1,6 @@
 import json
 import os
-import time
+import sys
 import traceback
 
 import dotenv
@@ -34,7 +34,7 @@ waypoint.success_callback = ["promptlayer"]
 
 def print_verbose(print_statement):
     if verbose:
-        print(print_statement)
+        sys.stdout.write(str(print_statement) + "\n")
 
 
 app = Flask(__name__)
@@ -54,7 +54,6 @@ def data_generator(response):
 @app.route("/chat/completions", methods=["POST"])
 def api_completion():
     data = request.json
-    start_time = time.time()
     if data.get("stream") == "True":
         data["stream"] = True  # convert to boolean
     try:
@@ -70,20 +69,15 @@ def api_completion():
             {"role": "user", "content": data.pop("prompt")},
         ]
         data["messages"] = messages
-        print(f"data: {data}")
+        sys.stdout.write(f"data: {data}" + "\n")
         response = completion(**data)
         ## LOG SUCCESS
-        end_time = time.time()
-        if (
-            "stream" in data and data["stream"] == True
-        ):  # use generate_responses to stream responses
+        if "stream" in data and data["stream"]:  # use generate_responses to stream responses
             return Response(data_generator(response), mimetype="text/event-stream")
     except Exception:
         # call handle_error function
         print_verbose(f"Got Error api_completion(): {traceback.format_exc()}")
         ## LOG FAILURE
-        end_time = time.time()
-        traceback_exception = traceback.format_exc()
         return handle_error(data=data)
     return response
 

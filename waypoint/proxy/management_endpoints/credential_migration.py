@@ -227,7 +227,7 @@ async def _migrate_config_settings_row(
     dict with selected sensitive fields (vantage_settings / cloudzero_settings).
     """
     report: Final = LocationReport(location=param_name)
-    record: Final = await prisma_client.db.waypoint_config.find_unique(where={"param_name": param_name})
+    record: Final = await prisma_client.db.litellm_config.find_unique(where={"param_name": param_name})
     if record is None or record.param_value is None:
         return report
 
@@ -267,7 +267,7 @@ async def _migrate_config_settings_row(
 
     if changed and not dry_run:
         async with db_span("migrate_config_credentials", "LiteLLM_Config"):
-            await prisma_client.db.waypoint_config.update(
+            await prisma_client.db.litellm_config.update(
                 where={"param_name": param_name},
                 data={"param_value": json.dumps(settings)},
             )
@@ -552,7 +552,7 @@ async def _scan_config_env_vars(prisma_client: object) -> LocationReport:
     """Scan the ``environment_variables`` config row (``param_value`` dict)."""
     report: Final = LocationReport(location="config_environment_variables")
     try:
-        record: Final = await prisma_client.db.waypoint_config.find_unique(where={"param_name": "environment_variables"})
+        record: Final = await prisma_client.db.litellm_config.find_unique(where={"param_name": "environment_variables"})
     except Exception as e:  # pragma: no cover - defensive
         verbose_proxy_logger.debug("scan: config env vars unavailable: %s", str(e))
         return report

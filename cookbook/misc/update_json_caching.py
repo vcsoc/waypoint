@@ -1,4 +1,5 @@
 import json
+import sys
 
 # List of models to update
 models_to_update = [
@@ -27,9 +28,9 @@ def update_model_prices(file_path):
 
     # Update specified models
     for model_name in models_to_update:
-        print("finding model", model_name)
+        sys.stdout.write(" ".join(str(_output_value) for _output_value in ("finding model", model_name)) + "\n")
         if model_name in data:
-            print("found model")
+            sys.stdout.write("found model" + "\n")
             model = data[model_name]
             if "input_cost_per_token" in model:
                 # Format new values to match original style
@@ -40,13 +41,10 @@ def update_model_prices(file_path):
                 model["output_cost_per_token_batches"] = float(
                     "{:.12f}".format(model["output_cost_per_token"] / 2)
                 )
-        print("new pricing for model=")
+        sys.stdout.write("new pricing for model=" + "\n")
         # Convert all float values to full decimal format before printing
-        formatted_model = {
-            k: "{:.9f}".format(v) if isinstance(v, float) else v
-            for k, v in data[model_name].items()
-        }
-        print(json.dumps(formatted_model, indent=4))
+        formatted_model = {k: f"{v:.9f}" if isinstance(v, float) else v for k, v in data[model_name].items()}
+        sys.stdout.write(str(json.dumps(formatted_model, indent=4)) + "\n")
 
 
 # Run the update

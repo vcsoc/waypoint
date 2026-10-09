@@ -77,9 +77,9 @@ def main() -> int:
     version = importlib.metadata.version("prisma")
     expected = stamp_value(SCHEMA.read_bytes(), version)
     if should_skip(STAMP, expected, client_is_generated()):
-        print(
-            f"Prisma client already generated for {SCHEMA.relative_to(REPO_ROOT)} "
-            f"(prisma {version}); skipping prisma generate"
+        sys.stdout.write(
+            f"Prisma client already generated for {SCHEMA.relative_to(REPO_ROOT)} (prisma {version}); skipping prisma generate"
+            + "\n"
         )
         return 0
     returncode = run_generate()

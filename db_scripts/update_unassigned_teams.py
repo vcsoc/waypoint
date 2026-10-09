@@ -1,3 +1,5 @@
+import sys
+
 from prisma import Prisma
 
 from waypoint._logging import verbose_logger
@@ -26,10 +28,8 @@ async def apply_db_fixes(db: Prisma):
             );
         """
         response = await db.query_raw(sql_query)
-        print(
-            "Updated unassigned teams, Response=%s",
-            response,
+        sys.stdout.write(
+            " ".join(str(_output_value) for _output_value in ("Updated unassigned teams, Response=%s", response)) + "\n"
         )
     except Exception as e:
-        raise Exception(f"Error apply_db_fixes: {str(e)}")
-    return
+        raise Exception(f"Error apply_db_fixes: {e!s}")

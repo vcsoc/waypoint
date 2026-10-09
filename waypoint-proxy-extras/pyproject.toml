@@ -3,7 +3,7 @@ name = "waypoint-proxy-extras"
 version = "0.4.107"
 description = "Additional files for the Waypoint Proxy. Reduces the size of the main waypoint package."
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "psycopg>=3.2,<4.0",
     "psycopg-binary>=3.2,<4.0",

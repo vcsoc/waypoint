@@ -29,7 +29,6 @@ import os
 import sys
 import time
 import uuid
-from typing import List, Optional
 
 import httpx
 
@@ -37,10 +36,7 @@ PROXY_URL: str = os.environ.get("WAYPOINT_PROXY_URL", "http://localhost:4000")
 try:
     PROXY_KEY: str = os.environ["WAYPOINT_PROXY_KEY"]
 except KeyError:
-    print(
-        "ERROR: WAYPOINT_PROXY_KEY env var must be set (a proxy key with /chat/completions perms).",
-        file=sys.stderr,
-    )
+    sys.stderr.write("ERROR: WAYPOINT_PROXY_KEY env var must be set (a proxy key with /chat/completions perms)." + "\n")
     sys.exit(2)
 
 ROUTER_NAME: str = os.environ.get("ADAPTIVE_ROUTER_NAME", "smart-cheap-router")
@@ -54,7 +50,7 @@ RETRY_ATTEMPTS: int = 3
 RETRY_BACKOFF_SECONDS: float = 1.0
 FLUSHER_DRAIN_WAIT_SECONDS: float = 30.0  # proxy flusher loop is 10s; pad with margin
 
-PROMPTS: List[str] = [
+PROMPTS: list[str] = [
     "Write a Python function that reverses a binary tree",
     "Explain the time complexity of quicksort",
     "Design an API for a chat application",
@@ -62,16 +58,14 @@ PROMPTS: List[str] = [
 SATISFACTION_PROMPT: str = "thanks, that worked!"
 
 
-async def _post_chat(
-    client: httpx.AsyncClient, session_id: str, prompt: str
-) -> Optional[dict]:
+async def _post_chat(client: httpx.AsyncClient, session_id: str, prompt: str) -> dict | None:
     """POST a chat completion with retry + timeout. Returns response JSON or None."""
     body = {
         "model": ROUTER_NAME,
         "messages": [{"role": "user", "content": prompt}],
         "metadata": {"litellm_session_id": session_id},
     }
-    last_exc: Optional[Exception] = None
+    last_exc: Exception | None = None
     for attempt in range(1, RETRY_ATTEMPTS + 1):
         try:
             r = await client.post(
@@ -86,21 +80,18 @@ async def _post_chat(
             last_exc = e
             if attempt < RETRY_ATTEMPTS:
                 await asyncio.sleep(RETRY_BACKOFF_SECONDS * attempt)
-    print(
-        f"  request failed after {RETRY_ATTEMPTS} attempts (session={session_id}): {last_exc}",
-        file=sys.stderr,
-    )
+    sys.stderr.write(f"  request failed after {RETRY_ATTEMPTS} attempts (session={session_id}): {last_exc}" + "\n")
     return None
 
 
 async def send_session(
     client: httpx.AsyncClient,
     session_id: str,
-    prompts: List[str],
+    prompts: list[str],
     satisfy: bool = True,
-) -> Optional[str]:
+) -> str | None:
     """Send a session of N turns. Returns the model that handled the last turn."""
-    last_model: Optional[str] = None
+    last_model: str | None = None
     for prompt in prompts:
         resp = await _post_chat(client, session_id, prompt)
         if resp is None:
@@ -117,77 +108,69 @@ async def _proxy_health_check(client: httpx.AsyncClient) -> bool:
         r = await client.get(f"{PROXY_URL}/health/liveliness", timeout=5.0)
         return r.status_code == 200
     except Exception as e:  # noqa: BLE001
-        print(f"proxy unreachable at {PROXY_URL}: {e}", file=sys.stderr)
+        sys.stderr.write(f"proxy unreachable at {PROXY_URL}: {e}" + "\n")
         return False
 
 
 async def main() -> None:
-    print("=== verify_adaptive_router.py ===")
-    print(f"proxy:           {PROXY_URL}")
-    print(f"router:          {ROUTER_NAME}")
-    print(f"expected winner: {EXPECTED_WINNER}")
-    print(f"train sessions:  {TRAIN_SESSIONS}")
-    print(f"converge runs:   {CONVERGE_SESSIONS}\n")
+    sys.stdout.write("=== verify_adaptive_router.py ===" + "\n")
+    sys.stdout.write(f"proxy:           {PROXY_URL}" + "\n")
+    sys.stdout.write(f"router:          {ROUTER_NAME}" + "\n")
+    sys.stdout.write(f"expected winner: {EXPECTED_WINNER}" + "\n")
+    sys.stdout.write(f"train sessions:  {TRAIN_SESSIONS}" + "\n")
+    sys.stdout.write(f"converge runs:   {CONVERGE_SESSIONS}\n" + "\n")
 
     async with httpx.AsyncClient() as client:
         if not await _proxy_health_check(client):
-            print("FAIL: proxy health check did not return 200.", file=sys.stderr)
+            sys.stderr.write("FAIL: proxy health check did not return 200." + "\n")
             sys.exit(1)
 
         # ---- Phase 1: training -------------------------------------------
-        print(
-            f"Phase 1: training ({TRAIN_SESSIONS} sessions of 3 turns + satisfaction)..."
-        )
+        sys.stdout.write(f"Phase 1: training ({TRAIN_SESSIONS} sessions of 3 turns + satisfaction)..." + "\n")
         for i in range(TRAIN_SESSIONS):
             sid = f"verify-train-{uuid.uuid4()}"
             await send_session(client, sid, PROMPTS, satisfy=True)
             if (i + 1) % 5 == 0:
-                print(f"  trained {i + 1}/{TRAIN_SESSIONS} sessions")
+                sys.stdout.write(f"  trained {i + 1}/{TRAIN_SESSIONS} sessions" + "\n")
 
-        print(
-            f"\nWaiting {FLUSHER_DRAIN_WAIT_SECONDS:.0f}s for flusher to drain queue..."
-        )
+        sys.stdout.write(f"\nWaiting {FLUSHER_DRAIN_WAIT_SECONDS:.0f}s for flusher to drain queue..." + "\n")
         await asyncio.sleep(FLUSHER_DRAIN_WAIT_SECONDS)
 
         # ---- Phase 2: convergence ----------------------------------------
-        print(f"\nPhase 2: convergence test ({CONVERGE_SESSIONS} cold sessions)...")
-        picks: List[str] = []
+        sys.stdout.write(f"\nPhase 2: convergence test ({CONVERGE_SESSIONS} cold sessions)..." + "\n")
+        picks: list[str] = []
         for i in range(CONVERGE_SESSIONS):
             sid = f"verify-test-{uuid.uuid4()}"
             m = await send_session(client, sid, [PROMPTS[0]], satisfy=False)
             if m:
                 picks.append(m)
-                print(f"  session {i + 1}: picked {m}")
+                sys.stdout.write(f"  session {i + 1}: picked {m}" + "\n")
 
         if not picks:
-            print("\nFAIL: no successful picks in convergence phase.", file=sys.stderr)
+            sys.stderr.write("\nFAIL: no successful picks in convergence phase." + "\n")
             sys.exit(1)
         winner_share = picks.count(EXPECTED_WINNER) / len(picks)
-        print(
-            f"\n{EXPECTED_WINNER} share: {winner_share:.0%} "
-            f"({picks.count(EXPECTED_WINNER)}/{len(picks)})"
+        sys.stdout.write(
+            f"\n{EXPECTED_WINNER} share: {winner_share:.0%} ({picks.count(EXPECTED_WINNER)}/{len(picks)})" + "\n"
         )
 
         # ---- Phase 3: sticky session -------------------------------------
-        print("\nPhase 3: sticky session test...")
+        sys.stdout.write("\nPhase 3: sticky session test..." + "\n")
         sid = f"verify-sticky-{uuid.uuid4()}"
-        models: List[str] = []
+        models: list[str] = []
         for _ in range(3):
             m = await send_session(client, sid, [PROMPTS[0]], satisfy=False)
             if m:
                 models.append(m)
         if len(models) == 3 and len(set(models)) == 1:
-            print(f"  PASS: same model {models[0]} across 3 turns of session {sid}")
+            sys.stdout.write(f"  PASS: same model {models[0]} across 3 turns of session {sid}" + "\n")
         else:
-            print(
-                f"  FAIL: models differed within session: {models}",
-                file=sys.stderr,
-            )
+            sys.stderr.write(f"  FAIL: models differed within session: {models}" + "\n")
             sys.exit(1)
 
         # ---- Phase 4: latency benchmark ----------------------------------
-        print("\nPhase 4: routing latency (5 picks, p50)...")
-        latencies: List[float] = []
+        sys.stdout.write("\nPhase 4: routing latency (5 picks, p50)..." + "\n")
+        latencies: list[float] = []
         for _ in range(5):
             t0 = time.perf_counter()
             await send_session(
@@ -196,19 +179,16 @@ async def main() -> None:
             latencies.append(time.perf_counter() - t0)
         latencies.sort()
         p50 = latencies[len(latencies) // 2]
-        print(f"  p50 e2e roundtrip: {p50 * 1000:.0f}ms")
+        sys.stdout.write(f"  p50 e2e roundtrip: {p50 * 1000:.0f}ms" + "\n")
 
         # ---- Verdict -----------------------------------------------------
         if winner_share >= WIN_THRESHOLD:
-            print(
-                f"\nPASS: convergence ({winner_share:.0%} >= {WIN_THRESHOLD:.0%}) + "
-                f"sticky + latency checks all green."
+            sys.stdout.write(
+                f"\nPASS: convergence ({winner_share:.0%} >= {WIN_THRESHOLD:.0%}) + sticky + latency checks all green."
+                + "\n"
             )
             sys.exit(0)
-        print(
-            f"\nFAIL: convergence too weak ({winner_share:.0%} < {WIN_THRESHOLD:.0%}).",
-            file=sys.stderr,
-        )
+        sys.stderr.write(f"\nFAIL: convergence too weak ({winner_share:.0%} < {WIN_THRESHOLD:.0%})." + "\n")
         sys.exit(1)
 
 

@@ -3,6 +3,7 @@ python script to pre-create all views required by Waypoint Proxy Server
 """
 
 import asyncio
+import sys
 
 # Enter your DATABASE_URL here
 from prisma import Prisma
@@ -30,7 +31,7 @@ async def check_view_exists():
     try:
         # Try to select one row from the view
         await db.query_raw("""SELECT 1 FROM "LiteLLM_VerificationTokenView" LIMIT 1""")
-        print("LiteLLM_VerificationTokenView Exists!")  # noqa
+        sys.stdout.write("LiteLLM_VerificationTokenView Exists!" + "\n")
     except Exception:
         # If an error occurs, the view does not exist, so create it
         await db.execute_raw("""
@@ -45,11 +46,11 @@ async def check_view_exists():
                 LEFT JOIN "LiteLLM_TeamTable" t ON v.team_id = t.team_id;
             """)
 
-        print("LiteLLM_VerificationTokenView Created!")  # noqa
+        sys.stdout.write("LiteLLM_VerificationTokenView Created!" + "\n")
 
     try:
         await db.query_raw("""SELECT 1 FROM "MonthlyGlobalSpend" LIMIT 1""")
-        print("MonthlyGlobalSpend Exists!")  # noqa
+        sys.stdout.write("MonthlyGlobalSpend Exists!" + "\n")
     except Exception:
         sql_query = """
         CREATE OR REPLACE VIEW "MonthlyGlobalSpend" AS 
@@ -65,11 +66,11 @@ async def check_view_exists():
         """
         await db.execute_raw(query=sql_query)
 
-        print("MonthlyGlobalSpend Created!")  # noqa
+        sys.stdout.write("MonthlyGlobalSpend Created!" + "\n")
 
     try:
         await db.query_raw("""SELECT 1 FROM "Last30dKeysBySpend" LIMIT 1""")
-        print("Last30dKeysBySpend Exists!")  # noqa
+        sys.stdout.write("Last30dKeysBySpend Exists!" + "\n")
     except Exception:
         sql_query = """
         CREATE OR REPLACE VIEW "Last30dKeysBySpend" AS
@@ -93,11 +94,11 @@ async def check_view_exists():
         """
         await db.execute_raw(query=sql_query)
 
-        print("Last30dKeysBySpend Created!")  # noqa
+        sys.stdout.write("Last30dKeysBySpend Created!" + "\n")
 
     try:
         await db.query_raw("""SELECT 1 FROM "Last30dModelsBySpend" LIMIT 1""")
-        print("Last30dModelsBySpend Exists!")  # noqa
+        sys.stdout.write("Last30dModelsBySpend Exists!" + "\n")
     except Exception:
         sql_query = """
         CREATE OR REPLACE VIEW "Last30dModelsBySpend" AS
@@ -116,10 +117,10 @@ async def check_view_exists():
         """
         await db.execute_raw(query=sql_query)
 
-        print("Last30dModelsBySpend Created!")  # noqa
+        sys.stdout.write("Last30dModelsBySpend Created!" + "\n")
     try:
         await db.query_raw("""SELECT 1 FROM "MonthlyGlobalSpendPerKey" LIMIT 1""")
-        print("MonthlyGlobalSpendPerKey Exists!")  # noqa
+        sys.stdout.write("MonthlyGlobalSpendPerKey Exists!" + "\n")
     except Exception:
         sql_query = """
             CREATE OR REPLACE VIEW "MonthlyGlobalSpendPerKey" AS 
@@ -137,12 +138,12 @@ async def check_view_exists():
         """
         await db.execute_raw(query=sql_query)
 
-        print("MonthlyGlobalSpendPerKey Created!")  # noqa
+        sys.stdout.write("MonthlyGlobalSpendPerKey Created!" + "\n")
     try:
         await db.query_raw(
             """SELECT 1 FROM "MonthlyGlobalSpendPerUserPerKey" LIMIT 1"""
         )
-        print("MonthlyGlobalSpendPerUserPerKey Exists!")  # noqa
+        sys.stdout.write("MonthlyGlobalSpendPerUserPerKey Exists!" + "\n")
     except Exception:
         sql_query = """
             CREATE OR REPLACE VIEW "MonthlyGlobalSpendPerUserPerKey" AS 
@@ -162,11 +163,11 @@ async def check_view_exists():
         """
         await db.execute_raw(query=sql_query)
 
-        print("MonthlyGlobalSpendPerUserPerKey Created!")  # noqa
+        sys.stdout.write("MonthlyGlobalSpendPerUserPerKey Created!" + "\n")
 
     try:
         await db.query_raw("""SELECT 1 FROM "DailyTagSpend" LIMIT 1""")
-        print("DailyTagSpend Exists!")  # noqa
+        sys.stdout.write("DailyTagSpend Exists!" + "\n")
     except Exception:
         sql_query = """
         CREATE OR REPLACE VIEW "DailyTagSpend" AS
@@ -180,11 +181,11 @@ async def check_view_exists():
         """
         await db.execute_raw(query=sql_query)
 
-        print("DailyTagSpend Created!")  # noqa
+        sys.stdout.write("DailyTagSpend Created!" + "\n")
 
     try:
         await db.query_raw("""SELECT 1 FROM "Last30dTopEndUsersSpend" LIMIT 1""")
-        print("Last30dTopEndUsersSpend Exists!")  # noqa
+        sys.stdout.write("Last30dTopEndUsersSpend Exists!" + "\n")
     except Exception:
         sql_query = """
         CREATE VIEW "Last30dTopEndUsersSpend" AS
@@ -198,9 +199,7 @@ async def check_view_exists():
         """
         await db.execute_raw(query=sql_query)
 
-        print("Last30dTopEndUsersSpend Created!")  # noqa
-
-    return
+        sys.stdout.write("Last30dTopEndUsersSpend Created!" + "\n")
 
 
 asyncio.run(check_view_exists())

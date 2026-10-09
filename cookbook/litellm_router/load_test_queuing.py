@@ -54,14 +54,14 @@ questions = []
 
 for file_path in file_paths:
     try:
-        print(file_path)
+        sys.stdout.write(str(file_path) + "\n")
         with open(file_path, "r") as file:
             content = file.read()
             questions.append(content)
     except FileNotFoundError as e:
-        print(f"File not found: {e}")
+        sys.stdout.write(f"File not found: {e}" + "\n")
     except Exception as e:
-        print(f"An error occurred: {e}")
+        sys.stdout.write(f"An error occurred: {e}" + "\n")
 
 # for q in questions:
 #     print(q)
@@ -91,7 +91,7 @@ def make_openai_completion(question):
                 },
             ],
         }
-        response = requests.post("http://0.0.0.0:8000/queue/request", json=data)
+        response = requests.post("http://0.0.0.0:8000/queue/request", json=data, timeout=30)
         response = response.json()
         end_time = time.time()
         # Log the request details
@@ -105,9 +105,12 @@ def make_openai_completion(question):
             try:
                 url = response["url"]
                 polling_url = f"http://0.0.0.0:8000{url}"
-                polling_response = requests.get(polling_url)
+                polling_response = requests.get(polling_url, timeout=30)
                 polling_response = polling_response.json()
-                print("\n RESPONSE FROM POLLING JoB", polling_response)
+                sys.stdout.write(
+                    " ".join(str(_output_value) for _output_value in ("\n RESPONSE FROM POLLING JoB", polling_response))
+                    + "\n"
+                )
                 status = polling_response["status"]
                 if status == "finished":
                     llm_response = polling_response["result"]
@@ -117,19 +120,19 @@ def make_openai_completion(question):
                         )
 
                     break
-                print(
-                    f"POLLING JOB{polling_url}\nSTATUS: {status}, \n Response {polling_response}"
-                )
+                sys.stdout.write(f"POLLING JOB{polling_url}\nSTATUS: {status}, \n Response {polling_response}" + "\n")
                 time.sleep(0.5)
             except Exception as e:
-                print("got exception in polling", e)
+                sys.stdout.write(
+                    " ".join(str(_output_value) for _output_value in ("got exception in polling", e)) + "\n"
+                )
                 break
 
         return response
     except Exception as e:
         # Log exceptions for failed calls
         with open("error_log.txt", "a") as error_log_file:
-            error_log_file.write(f"Question: {question[:100]}\nException: {str(e)}\n\n")
+            error_log_file.write(f"Question: {question[:100]}\nException: {e!s}\n\n")
         return None
 
 
@@ -159,7 +162,7 @@ for future in futures:
         else:
             failed_calls += 1
 
-print("Load test Summary:")
-print(f"Total Requests: {concurrent_calls}")
-print(f"Successful Calls: {successful_calls}")
-print(f"Failed Calls: {failed_calls}")
+sys.stdout.write("Load test Summary:" + "\n")
+sys.stdout.write(f"Total Requests: {concurrent_calls}" + "\n")
+sys.stdout.write(f"Successful Calls: {successful_calls}" + "\n")
+sys.stdout.write(f"Failed Calls: {failed_calls}" + "\n")

@@ -1,4 +1,3 @@
-from typing import List, Optional, Union
 
 from waypoint.types.guardrails import GuardrailEventHooks, Mode
 
@@ -7,11 +6,9 @@ class EnterpriseCustomGuardrailHelper:
     @staticmethod
     def _should_run_if_mode_by_tag(
         data: dict,
-        event_hook: Optional[
-            Union[GuardrailEventHooks, List[GuardrailEventHooks], Mode]
-        ],
-        event_type: Optional[GuardrailEventHooks] = None,
-    ) -> Optional[bool]:
+        event_hook: GuardrailEventHooks | list[GuardrailEventHooks] | Mode | None,
+        event_type: GuardrailEventHooks | None = None,
+    ) -> bool | None:
         """
         Returns True if the guardrail should be run for this request and event_type.
 

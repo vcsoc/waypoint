@@ -47,7 +47,7 @@ import sys
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import IO, Optional, Union
+from typing import IO
 
 from waypoint_proxy_extras._logging import logger
 
@@ -127,7 +127,7 @@ def prisma_migrate_deploy_timeout() -> float:
     return max(DEFAULT_PRISMA_MIGRATE_DEPLOY_TIMEOUT, prisma_command_timeout())
 
 
-def nodeenv_cache_dir() -> Optional[Path]:
+def nodeenv_cache_dir() -> Path | None:
     """Where Prisma installs its private Node runtime, or None if unknowable."""
     override = os.getenv(NODEENV_CACHE_DIR_ENV_VAR)
     if override:
@@ -219,8 +219,8 @@ def run_prisma(
     *,
     timeout: float,
     env: Mapping[str, str],
-    stdout: Union[IO[str], int, None] = subprocess.PIPE,
-    stderr: Optional[int] = subprocess.PIPE,
+    stdout: IO[str] | int | None = subprocess.PIPE,
+    stderr: int | None = subprocess.PIPE,
 ) -> "subprocess.CompletedProcess[str]":
     """Run one Prisma CLI command in its own process group, bounded by ``timeout``.
 

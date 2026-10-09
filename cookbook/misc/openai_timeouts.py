@@ -1,5 +1,6 @@
 import concurrent.futures
 import os
+import sys
 
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -29,6 +30,6 @@ with concurrent.futures.ThreadPoolExecutor() as executor:
     future = executor.submit(create_chat_completion)
     try:
         chat_completion = future.result(timeout=0.00001)
-        print(chat_completion)
+        sys.stdout.write(str(chat_completion) + "\n")
     except concurrent.futures.TimeoutError:
-        print("Operation timed out.")
+        sys.stdout.write("Operation timed out." + "\n")

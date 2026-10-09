@@ -277,18 +277,17 @@ def checker_identity(dep_groups: tuple[str, ...] = TYPECHECK_DEP_GROUPS) -> Chec
 
 def cmd_check(head: Mapping[str, int], base_ref: str) -> None:
     if not head:
-        print(
-            "FAIL: basedpyright produced no errors. The type checker almost certainly "
-            "crashed or emitted nothing; refusing to certify a vacuous run."
+        sys.stdout.write(
+            "FAIL: basedpyright produced no errors. The type checker almost certainly crashed or emitted nothing; refusing to certify a vacuous run."
+            + "\n"
         )
         raise SystemExit(1)
     base_point: Final = resolve_base_point(base_ref)
     base: Final = base_counts_cached(checker_identity(), base_point, base_counts)
     if not base:
-        print(
-            f"FAIL: basedpyright produced no errors for the base tree at {base_point[:12]}, "
-            "so every rule would look freshly added. The base pass almost certainly "
-            "crashed; refusing to blame this change for it."
+        sys.stdout.write(
+            f"FAIL: basedpyright produced no errors for the base tree at {base_point[:12]}, so every rule would look freshly added. The base pass almost certainly crashed; refusing to blame this change for it."
+            + "\n"
         )
         raise SystemExit(1)
     judge(head, base, base_point)
@@ -297,20 +296,23 @@ def cmd_check(head: Mapping[str, int], base_ref: str) -> None:
 def judge(head: Mapping[str, int], base: Mapping[str, int], base_point: str) -> None:
     breaches: Final = evaluate(head, base, ANY_CAPS)
     if not breaches:
-        print(
-            f"OK: every basedpyright rule is within its ceiling "
-            f"({sum(head.values())} errors total, base {base_point[:12]})"
+        sys.stdout.write(
+            f"OK: every basedpyright rule is within its ceiling ({sum(head.values())} errors total, base {base_point[:12]})"
+            + "\n"
         )
         return
-    print(f"FAIL: basedpyright errors grew past their ceiling (base {base_point[:12]}):")
+    sys.stdout.write(f"FAIL: basedpyright errors grew past their ceiling (base {base_point[:12]}):" + "\n")
     for breach in breaches:
-        print(f"  {breach.rule}: total {breach.total} over ceiling {breach.ceiling} (this change added {breach.added})")
-    print(
-        "Reduce the new errors or remove an equal number elsewhere; the ceiling is the merge-base "
-        "count, or the cap in ANY_CAPS (scripts/type_check_gate.py) when that is higher."
+        sys.stdout.write(
+            f"  {breach.rule}: total {breach.total} over ceiling {breach.ceiling} (this change added {breach.added})"
+            + "\n"
+        )
+    sys.stdout.write(
+        "Reduce the new errors or remove an equal number elsewhere; the ceiling is the merge-base count, or the cap in ANY_CAPS (scripts/type_check_gate.py) when that is higher."
+        + "\n"
     )
     summary: Final = "; ".join(f"{b.rule} {b.total}/{b.ceiling} (+{b.added})" for b in breaches)
-    print(f"BREACHED RULES: {summary}")
+    sys.stdout.write(f"BREACHED RULES: {summary}" + "\n")
     raise SystemExit(1)
 
 

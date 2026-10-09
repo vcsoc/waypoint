@@ -3,7 +3,7 @@
 ## It allows creating vector stores across multiple models and managing them with unified IDs
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, Dict, Final, List, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, Final, cast
 
 from fastapi import HTTPException
 
@@ -29,7 +29,7 @@ if TYPE_CHECKING:
     from waypoint.proxy.utils import InternalUsageCache as _InternalUsageCache
     from waypoint.proxy.utils import PrismaClient as _PrismaClient
 
-    Span = Union[_Span, Any]
+    Span = _Span | Any
     InternalUsageCache = _InternalUsageCache
     PrismaClient = _PrismaClient
 else:
@@ -75,7 +75,7 @@ class _PROXY_LiteLLMManagedVectorStores(
     def get_unified_resource_id_format(
         self,
         resource_object: VectorStoreCreateResponse,
-        target_model_names_list: List[str],
+        target_model_names_list: list[str],
     ) -> str:
         """
         Generate the format string for the unified vector store ID.
@@ -133,7 +133,7 @@ class _PROXY_LiteLLMManagedVectorStores(
         self,
         create_request: VectorStoreCreateOptionalRequestParams,
         llm_router: Router,
-        target_model_names_list: List[str],
+        target_model_names_list: list[str],
         litellm_parent_otel_span: Span,
         user_api_key_dict: UserAPIKeyAuth,
     ) -> VectorStoreCreateResponse:
@@ -156,7 +156,7 @@ class _PROXY_LiteLLMManagedVectorStores(
 
         # Create vector store for each model
         # Convert TypedDict to Dict[str, Any] for base class compatibility
-        request_data_dict: Dict[str, object] = dict(create_request)
+        request_data_dict: dict[str, object] = dict(create_request)
         responses = await self.create_resource_for_each_model(
             llm_router=llm_router,
             request_data=request_data_dict,
@@ -171,7 +171,7 @@ class _PROXY_LiteLLMManagedVectorStores(
         )
 
         # Extract model mappings from responses
-        model_mappings: Dict[str, str] = {}
+        model_mappings: dict[str, str] = {}
         for response in responses:
             hidden_params = getattr(response, "_hidden_params", {}) or {}
             model_id = hidden_params.get("model_id")
@@ -206,10 +206,10 @@ class _PROXY_LiteLLMManagedVectorStores(
     async def alist_vector_stores(
         self,
         user_api_key_dict: UserAPIKeyAuth,
-        limit: Optional[int] = None,
-        after: Optional[str] = None,
-        order: Optional[str] = None,
-    ) -> Dict[str, object]:
+        limit: int | None = None,
+        after: str | None = None,
+        order: str | None = None,
+    ) -> dict[str, object]:
         """
         List vector stores created by a user.
         
@@ -258,9 +258,7 @@ class _PROXY_LiteLLMManagedVectorStores(
         # Not a managed vector store, allow access
         return True
 
-    async def check_managed_vector_store_access(
-        self, data: Dict, user_api_key_dict: UserAPIKeyAuth
-    ) -> bool:
+    async def check_managed_vector_store_access(self, data: dict, user_api_key_dict: UserAPIKeyAuth) -> bool:
         """
         Check if user has access to a managed vector store in request data.
         
@@ -274,7 +272,7 @@ class _PROXY_LiteLLMManagedVectorStores(
         Raises:
             HTTPException: If user doesn't have access
         """
-        vector_store_id = cast(Optional[str], data.get("vector_store_id"))
+        vector_store_id = cast(str | None, data.get("vector_store_id"))
         is_unified_id = (
             is_base64_encoded_unified_id(vector_store_id)
             if vector_store_id
@@ -302,9 +300,9 @@ class _PROXY_LiteLLMManagedVectorStores(
         self,
         user_api_key_dict: UserAPIKeyAuth,
         cache: "DualCache",
-        data: Dict,
+        data: dict,
         call_type: str,
-    ) -> Union[Exception, str, Dict, None]:
+    ) -> Exception | str | dict | None:
         """
         Pre-call hook to handle vector store operations.
         
@@ -401,7 +399,7 @@ class _PROXY_LiteLLMManagedVectorStores(
 
     async def async_post_call_success_hook(
         self,
-        data: Dict,
+        data: dict,
         user_api_key_dict: UserAPIKeyAuth,
         response: LLMResponseTypes,
     ) -> LLMResponseTypes:
@@ -429,11 +427,11 @@ class _PROXY_LiteLLMManagedVectorStores(
     async def async_filter_deployments(  # type: ignore[override]
         self,
         model: str,
-        healthy_deployments: List,
-        messages: Optional[List] = None,
-        request_kwargs: Optional[Dict] = None,
-        parent_otel_span: Optional[Span] = None,
-    ) -> List[Dict]:
+        healthy_deployments: list,
+        messages: list | None = None,
+        request_kwargs: dict | None = None,
+        parent_otel_span: Span | None = None,
+    ) -> list[dict]:
         """
         Filter deployments based on vector store availability.
         

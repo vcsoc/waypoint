@@ -5,7 +5,7 @@ This is a simple in-memory secret manager for testing purposes.
 In production, replace this with your actual secret management system.
 """
 
-from typing import Optional, Union
+import sys
 
 import httpx
 
@@ -16,28 +16,30 @@ class InMemorySecretManager(CustomSecretManager):
     def __init__(self):
         super().__init__(secret_manager_name="in_memory_secrets")
         # Store your secrets in memory
-        print("INITIALIZING CUSTOM SECRET MANAGER IN MEMORY")
+        sys.stdout.write("INITIALIZING CUSTOM SECRET MANAGER IN MEMORY" + "\n")
         self.secrets = {}
-        print("CUSTOM SECRET MANAGER IN MEMORY INITIALIZED")
+        sys.stdout.write("CUSTOM SECRET MANAGER IN MEMORY INITIALIZED" + "\n")
 
     async def async_read_secret(
         self,
         secret_name: str,
-        optional_params: Optional[dict] = None,
-        timeout: Optional[Union[float, httpx.Timeout]] = None,
-    ) -> Optional[str]:
+        optional_params: dict | None = None,
+        timeout: float | httpx.Timeout | None = None,
+    ) -> str | None:
         """Read secret asynchronously"""
-        print("READING SECRET ASYNCHRONOUSLY")
-        print("SECRET NAME: %s", secret_name)
-        print("SECRET: %s", self.secrets.get(secret_name))
+        sys.stdout.write("READING SECRET ASYNCHRONOUSLY" + "\n")
+        sys.stdout.write(" ".join(str(_output_value) for _output_value in ("SECRET NAME: %s", secret_name)) + "\n")
+        sys.stdout.write(
+            " ".join(str(_output_value) for _output_value in ("SECRET: %s", self.secrets.get(secret_name))) + "\n"
+        )
         return self.secrets.get(secret_name)
 
     def sync_read_secret(
         self,
         secret_name: str,
-        optional_params: Optional[dict] = None,
-        timeout: Optional[Union[float, httpx.Timeout]] = None,
-    ) -> Optional[str]:
+        optional_params: dict | None = None,
+        timeout: float | httpx.Timeout | None = None,
+    ) -> str | None:
         """Read secret synchronously"""
         from waypoint._logging import verbose_proxy_logger
 
@@ -52,14 +54,14 @@ class InMemorySecretManager(CustomSecretManager):
         self,
         secret_name: str,
         secret_value: str,
-        description: Optional[str] = None,
-        optional_params: Optional[dict] = None,
-        timeout: Optional[Union[float, httpx.Timeout]] = None,
-        tags: Optional[Union[dict, list]] = None,
+        description: str | None = None,
+        optional_params: dict | None = None,
+        timeout: float | httpx.Timeout | None = None,
+        tags: dict | list | None = None,
     ) -> dict:
         """Write a secret to the in-memory store"""
         self.secrets[secret_name] = secret_value
-        print("ALL SECRETS=%s", self.secrets)
+        sys.stdout.write(" ".join(str(_output_value) for _output_value in ("ALL SECRETS=%s", self.secrets)) + "\n")
         return {
             "status": "success",
             "secret_name": secret_name,
@@ -69,9 +71,9 @@ class InMemorySecretManager(CustomSecretManager):
     async def async_delete_secret(
         self,
         secret_name: str,
-        recovery_window_in_days: Optional[int] = 7,
-        optional_params: Optional[dict] = None,
-        timeout: Optional[Union[float, httpx.Timeout]] = None,
+        recovery_window_in_days: int | None = 7,
+        optional_params: dict | None = None,
+        timeout: float | httpx.Timeout | None = None,
     ) -> dict:
         """Delete a secret from the in-memory store"""
         if secret_name in self.secrets:

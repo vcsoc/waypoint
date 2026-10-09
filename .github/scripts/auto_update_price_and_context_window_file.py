@@ -1,6 +1,7 @@
 import asyncio
 import json
 import math
+import sys
 from typing import Any
 
 import aiohttp
@@ -17,12 +18,12 @@ async def fetch_data(url):
                 resp.raise_for_status()
                 # Parse the response JSON
                 resp_json = await resp.json()
-                print("Fetch the data from URL.")
+                sys.stdout.write("Fetch the data from URL." + "\n")
                 # Return the 'data' field from the JSON response
                 return resp_json['data']
     except Exception as e:
         # Print an error message if fetching data fails
-        print("Error fetching data from URL:", e)
+        sys.stdout.write(" ".join(str(_output_value) for _output_value in ("Error fetching data from URL:", e)) + "\n")
         return None
 
 
@@ -188,10 +189,11 @@ def write_to_file(file_path, data):
         with open(file_path, "w") as file:
             # Dump the data as JSON into the file
             json.dump(data, file, indent=4)
-        print("Values updated successfully.")
+        sys.stdout.write("Values updated successfully." + "\n")
     except Exception as e:
         # Print an error message if writing to file fails
-        print("Error updating JSON file:", e)
+        sys.stdout.write(" ".join(str(_output_value) for _output_value in ("Error updating JSON file:", e)) + "\n")
+
 
 # Update the existing models and add the missing models for OpenRouter
 def transform_openrouter_data(data):
@@ -278,11 +280,11 @@ def load_local_data(file_path):
             return json.load(file)
     except FileNotFoundError:
         # Print an error message if the file is not found
-        print("File not found:", file_path)
+        sys.stdout.write(" ".join(str(_output_value) for _output_value in ("File not found:", file_path)) + "\n")
         return None
     except json.JSONDecodeError as e:
         # Print an error message if JSON decoding fails
-        print("Error decoding JSON:", e)
+        sys.stdout.write(" ".join(str(_output_value) for _output_value in ("Error decoding JSON:", e)) + "\n")
         return None
 
 def main():
@@ -314,7 +316,8 @@ def main():
         sync_local_data_with_remote(local_data, all_remote_data, replace_keys=frozenset(friendli_data))
         write_to_file(local_file_path, local_data)
     else:
-        print("Failed to fetch model data from either local file or URL.")
+        sys.stdout.write("Failed to fetch model data from either local file or URL." + "\n")
+
 
 # Entry point of the script
 if __name__ == "__main__":

@@ -81,7 +81,7 @@ class ENTERPRISE_GoogleTextModeration(CustomLogger):
         try:
             verbose_proxy_logger.debug(print_statement)
             if waypoint.set_verbose:
-                print(print_statement)  # noqa
+                print(print_statement)  # noqa: T201  # Legacy set_verbose also emits to stdout
         except Exception:
             pass
 

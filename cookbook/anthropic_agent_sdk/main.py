@@ -7,6 +7,7 @@ through the Claude Agent SDK by pointing it to the Waypoint gateway.
 """
 
 import asyncio
+import sys
 
 from claude_agent_sdk import ClaudeAgentOptions, ClaudeSDKClient
 from common import (
@@ -55,16 +56,16 @@ async def interactive_chat():
                 try:
                     user_input = input("\n👤 You: ").strip()
                 except (EOFError, KeyboardInterrupt):
-                    print("\n\n👋 Goodbye!")
+                    sys.stdout.write("\n\n👋 Goodbye!" + "\n")
                     return
 
                 # Handle commands
                 if user_input.lower() in ["quit", "exit"]:
-                    print("\n👋 Goodbye!")
+                    sys.stdout.write("\n👋 Goodbye!" + "\n")
                     return
 
                 if user_input.lower() == "clear":
-                    print("\n🔄 Starting new conversation...\n")
+                    sys.stdout.write("\n🔄 Starting new conversation...\n" + "\n")
                     conversation_active = False
                     continue
 
@@ -93,7 +94,7 @@ def main():
     try:
         asyncio.run(interactive_chat())
     except KeyboardInterrupt:
-        print("\n\n👋 Goodbye!")
+        sys.stdout.write("\n\n👋 Goodbye!" + "\n")
 
 
 if __name__ == "__main__":

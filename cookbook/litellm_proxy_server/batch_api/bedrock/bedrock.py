@@ -1,4 +1,5 @@
 import os
+import sys
 
 from openai import OpenAI
 
@@ -15,7 +16,7 @@ batch_input_file = client.files.create(
     purpose="batch",
     extra_body={"target_model_names": BEDROCK_BATCH_MODEL},
 )
-print(batch_input_file)
+sys.stdout.write(str(batch_input_file) + "\n")
 
 # Create batch
 batch = client.batches.create(
@@ -24,4 +25,4 @@ batch = client.batches.create(
     completion_window="24h",
     metadata={"description": "Test batch job"},
 )
-print(batch)
+sys.stdout.write(str(batch) + "\n")

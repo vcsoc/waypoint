@@ -7,7 +7,7 @@
 ## This accepts a list of user id's for whom calls will be rejected
 
 
-from typing import Literal, Optional
+from typing import Literal
 
 from fastapi import HTTPException
 
@@ -24,7 +24,7 @@ from waypoint.proxy.utils import PrismaClient
 class ENTERPRISE_BlockedUserList(CustomLogger):
     enforces_request_content: bool = True
     # Class variables or attributes
-    def __init__(self, prisma_client: Optional[PrismaClient]):
+    def __init__(self, prisma_client: PrismaClient | None):
         self.prisma_client = prisma_client
 
         blocked_user_list = waypoint.blocked_user_list
@@ -45,9 +45,7 @@ class ENTERPRISE_BlockedUserList(CustomLogger):
                     f"File not found. blocked_user_list={blocked_user_list}"
                 )
             except Exception as e:
-                raise Exception(
-                    f"An error occurred: {str(e)}, blocked_user_list={blocked_user_list}"
-                )
+                raise Exception(f"An error occurred: {e!s}, blocked_user_list={blocked_user_list}")
 
     def print_verbose(self, print_statement, level: Literal["INFO", "DEBUG"] = "DEBUG"):
         if level == "INFO":
@@ -56,7 +54,7 @@ class ENTERPRISE_BlockedUserList(CustomLogger):
             verbose_proxy_logger.debug(print_statement)
 
         if waypoint.set_verbose is True:
-            print(print_statement)  # noqa
+            print(print_statement)  # noqa: T201  # Legacy set_verbose also emits to stdout
 
     @with_service_target(AUTH_OBJECTS_TARGET)
     async def async_pre_call_hook(
@@ -89,7 +87,7 @@ class ENTERPRISE_BlockedUserList(CustomLogger):
                     )
 
                 cache_key = f"litellm:end_user_id:{user}"
-                end_user_cache_obj: Optional[LiteLLM_EndUserTable] = cache.get_cache(  # type: ignore
+                end_user_cache_obj: LiteLLM_EndUserTable | None = cache.get_cache(  # type: ignore
                     key=cache_key
                 )
                 if end_user_cache_obj is None and self.prisma_client is not None:
@@ -124,8 +122,6 @@ class ENTERPRISE_BlockedUserList(CustomLogger):
             raise e
         except Exception as e:
             verbose_proxy_logger.exception(
-                "waypoint.enterprise.enterprise_hooks.blocked_user_list::async_pre_call_hook - Exception occurred - {}".format(
-                    str(e)
-                )
+                f"waypoint.enterprise.enterprise_hooks.blocked_user_list::async_pre_call_hook - Exception occurred - {e!s}"
             )
 _ENTERPRISE_BlockedUserList = ENTERPRISE_BlockedUserList

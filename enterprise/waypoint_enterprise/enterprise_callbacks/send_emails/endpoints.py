@@ -3,7 +3,7 @@ Endpoints for managing email alerts on litellm
 """
 
 import json
-from typing import Dict, Final, cast
+from typing import Final, cast
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import JsonValue
@@ -23,11 +23,11 @@ from waypoint.proxy.db.db_span import db_span
 router = APIRouter()
 
 
-async def _get_email_settings(prisma_client) -> Dict[str, bool]:
+async def _get_email_settings(prisma_client) -> dict[str, bool]:
     """Helper function to get email settings from general_settings in db"""
     try:
         # Get general settings from db
-        general_settings_entry = await prisma_client.db.waypoint_config.find_unique(
+        general_settings_entry = await prisma_client.db.litellm_config.find_unique(
             where={"param_name": "general_settings"}
         )
 
@@ -40,28 +40,26 @@ async def _get_email_settings(prisma_client) -> Dict[str, bool]:
         ):
             # Get general settings value
             general_settings: Final = (
-                cast(Dict[str, object], json.loads(general_settings_entry.param_value))
+                cast(dict[str, object], json.loads(general_settings_entry.param_value))
                 if isinstance(general_settings_entry.param_value, str)
-                else cast(Dict[str, object], general_settings_entry.param_value)
+                else cast(dict[str, object], general_settings_entry.param_value)
             )
 
             # Extract email_settings from general settings if it exists
             if general_settings and "email_settings" in general_settings:
-                email_settings: Final = cast(Dict[str, bool], general_settings["email_settings"])
+                email_settings: Final = cast(dict[str, bool], general_settings["email_settings"])
                 # Update settings_dict with values from general_settings
                 for event_name, enabled in email_settings.items():
                     settings_dict[event_name] = enabled
 
         return settings_dict
     except Exception as e:
-        verbose_proxy_logger.error(
-            f"Error getting email settings from general_settings: {str(e)}"
-        )
+        verbose_proxy_logger.error(f"Error getting email settings from general_settings: {e!s}")
         # Return default settings in case of error
         return DefaultEmailSettings.get_defaults()
 
 
-async def _save_email_settings(prisma_client, settings: Dict[str, bool]):
+async def _save_email_settings(prisma_client, settings: dict[str, bool]):
     """Helper function to save email settings to general_settings in db"""
     from waypoint.proxy.proxy_server import proxy_config
 
@@ -74,16 +72,16 @@ async def _save_email_settings(prisma_client, settings: Dict[str, bool]):
         )
 
         # Get current general settings
-        general_settings_entry = await prisma_client.db.waypoint_config.find_unique(
+        general_settings_entry = await prisma_client.db.litellm_config.find_unique(
             where={"param_name": "general_settings"}
         )
 
         # Initialize general settings dict
         general_settings: Final = (
             (
-                cast(Dict[str, object], json.loads(general_settings_entry.param_value))
+                cast(dict[str, object], json.loads(general_settings_entry.param_value))
                 if isinstance(general_settings_entry.param_value, str)
-                else cast(Dict[str, object], dict(general_settings_entry.param_value))
+                else cast(dict[str, object], dict(general_settings_entry.param_value))
             )
             if general_settings_entry is not None and general_settings_entry.param_value is not None
             else {}
@@ -97,7 +95,7 @@ async def _save_email_settings(prisma_client, settings: Dict[str, bool]):
 
         # Save updated general settings
         async with db_span("save_email_settings", "LiteLLM_Config"):
-            await prisma_client.db.waypoint_config.upsert(
+            await prisma_client.db.litellm_config.upsert(
                 where={"param_name": "general_settings"},
                 data={
                     "create": {
@@ -110,7 +108,7 @@ async def _save_email_settings(prisma_client, settings: Dict[str, bool]):
     except Exception as e:
         raise HTTPException(
             status_code=500,
-            detail=f"Error saving email settings to general_settings: {str(e)}",
+            detail=f"Error saving email settings to general_settings: {e!s}",
         )
 
 
@@ -143,7 +141,7 @@ async def get_email_event_settings(
 
         return EmailEventSettingsResponse(settings=response_settings)
     except Exception as e:
-        verbose_proxy_logger.exception(f"Error getting email settings: {str(e)}")
+        verbose_proxy_logger.exception(f"Error getting email settings: {e!s}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -179,7 +177,7 @@ async def update_event_settings(
     except HTTPException:
         raise
     except Exception as e:
-        verbose_proxy_logger.exception(f"Error updating email settings: {str(e)}")
+        verbose_proxy_logger.exception(f"Error updating email settings: {e!s}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -210,5 +208,5 @@ async def reset_event_settings(
     except HTTPException:
         raise
     except Exception as e:
-        verbose_proxy_logger.exception(f"Error resetting email settings: {str(e)}")
+        verbose_proxy_logger.exception(f"Error resetting email settings: {e!s}")
         raise HTTPException(status_code=500, detail=str(e))

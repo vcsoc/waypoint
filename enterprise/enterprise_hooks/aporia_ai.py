@@ -15,11 +15,10 @@ sys.path.insert(
 )  # Adds the parent directory to the system path
 import json
 import sys
-from typing import Any, List, Literal, Optional
+from typing import Any
 
 from fastapi import HTTPException
 
-import waypoint
 from waypoint._logging import verbose_proxy_logger
 from waypoint.integrations.custom_guardrail import CustomGuardrail
 from waypoint.llms.custom_httpx.http_handler import (
@@ -37,9 +36,7 @@ GUARDRAIL_NAME = "aporia"
 
 
 class AporiaGuardrail(CustomGuardrail):
-    def __init__(
-        self, api_key: Optional[str] = None, api_base: Optional[str] = None, **kwargs
-    ):
+    def __init__(self, api_key: str | None = None, api_base: str | None = None, **kwargs):
         self.async_handler = get_async_httpx_client(
             llm_provider=httpxSpecialProvider.GuardrailCallback
         )
@@ -48,7 +45,7 @@ class AporiaGuardrail(CustomGuardrail):
         super().__init__(**kwargs)
 
     #### CALL HOOKS - proxy only ####
-    def transform_messages(self, messages: List[dict]) -> List[dict]:
+    def transform_messages(self, messages: list[dict]) -> list[dict]:
         supported_openai_roles = ["system", "user", "assistant"]
         default_role = "other"  # for unsupported roles - e.g. tool
         new_messages = []
@@ -65,9 +62,7 @@ class AporiaGuardrail(CustomGuardrail):
 
         return new_messages
 
-    async def prepare_aporia_request(
-        self, new_messages: List[dict], response_string: Optional[str] = None
-    ) -> dict:
+    async def prepare_aporia_request(self, new_messages: list[dict], response_string: str | None = None) -> dict:
         data: dict[str, Any] = {}
         if new_messages is not None:
             data["messages"] = new_messages
@@ -85,9 +80,7 @@ class AporiaGuardrail(CustomGuardrail):
         verbose_proxy_logger.debug("Aporia AI request: %s", data)
         return data
 
-    async def make_aporia_api_request(
-        self, new_messages: List[dict], response_string: Optional[str] = None
-    ):
+    async def make_aporia_api_request(self, new_messages: list[dict], response_string: str | None = None):
         data = await self.prepare_aporia_request(
             new_messages=new_messages, response_string=response_string
         )
@@ -152,7 +145,7 @@ class AporiaGuardrail(CustomGuardrail):
         if self.should_run_guardrail(data=data, event_type=event_type) is not True:
             return
 
-        response_str: Optional[str] = convert_litellm_response_object_to_str(response)
+        response_str: str | None = convert_litellm_response_object_to_str(response)
         if response_str is not None:
             await self.make_aporia_api_request(
                 response_string=response_str, new_messages=data.get("messages", [])
@@ -162,7 +155,6 @@ class AporiaGuardrail(CustomGuardrail):
                 request_data=data, guardrail_name=self.guardrail_name
             )
 
-        pass
 
     async def async_moderation_hook(
         self,
@@ -188,7 +180,7 @@ class AporiaGuardrail(CustomGuardrail):
         ):
             return
 
-        new_messages: Optional[List[dict]] = None
+        new_messages: list[dict] | None = None
         if "messages" in data and isinstance(data["messages"], list):
             new_messages = self.transform_messages(messages=data["messages"])
 
@@ -201,4 +193,3 @@ class AporiaGuardrail(CustomGuardrail):
             verbose_proxy_logger.warning(
                 "Aporia AI: not running guardrail. No messages in data"
             )
-            pass

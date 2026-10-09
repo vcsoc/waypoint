@@ -3,6 +3,7 @@ Common utilities for Claude Agent SDK examples
 """
 
 import os
+import sys
 
 import httpx
 
@@ -35,8 +36,8 @@ async def fetch_available_models(base_url: str, api_key: str) -> list[str]:
             data = response.json()
             return [model["id"] for model in data.get("data", [])]
     except Exception as e:
-        print(f"⚠️  Warning: Could not fetch models from proxy: {e}")
-        print("Using default model list...")
+        sys.stdout.write(f"⚠️  Warning: Could not fetch models from proxy: {e}" + "\n")
+        sys.stdout.write("Using default model list..." + "\n")
         # Fallback to default models
         return [
             "bedrock-claude-sonnet-3.5",
@@ -62,30 +63,30 @@ def print_header(base_url: str, current_model: str, has_mcp: bool = False):
     Print the chat header
     """
     mcp_indicator = " + MCP" if has_mcp else ""
-    print("=" * 70)
-    print(f"🤖 Claude Agent SDK with LiteLLM Gateway{mcp_indicator} - Interactive Chat")
-    print("=" * 70)
-    print(f"🚀 Connected to: {base_url}")
-    print(f"📦 Current model: {current_model}")
+    sys.stdout.write(str("=" * 70) + "\n")
+    sys.stdout.write(f"🤖 Claude Agent SDK with LiteLLM Gateway{mcp_indicator} - Interactive Chat" + "\n")
+    sys.stdout.write(str("=" * 70) + "\n")
+    sys.stdout.write(f"🚀 Connected to: {base_url}" + "\n")
+    sys.stdout.write(f"📦 Current model: {current_model}" + "\n")
     if has_mcp:
-        print("🔌 MCP: deepwiki2 enabled")
-    print("\nType your messages below. Commands:")
-    print("  - 'quit' or 'exit' to end the conversation")
-    print("  - 'clear' to start a new conversation")
-    print("  - 'model' to switch models")
-    print("  - 'models' to list available models")
-    print("=" * 70)
-    print()
+        sys.stdout.write("🔌 MCP: deepwiki2 enabled" + "\n")
+    sys.stdout.write("\nType your messages below. Commands:" + "\n")
+    sys.stdout.write("  - 'quit' or 'exit' to end the conversation" + "\n")
+    sys.stdout.write("  - 'clear' to start a new conversation" + "\n")
+    sys.stdout.write("  - 'model' to switch models" + "\n")
+    sys.stdout.write("  - 'models' to list available models" + "\n")
+    sys.stdout.write(str("=" * 70) + "\n")
+    sys.stdout.write("" + "\n")
 
 
 def handle_model_list(available_models: list[str], current_model: str):
     """
     Display available models
     """
-    print("\n📋 Available models:")
+    sys.stdout.write("\n📋 Available models:" + "\n")
     for i, model in enumerate(available_models, 1):
         marker = "✓" if model == current_model else " "
-        print(f"  {marker} {i}. {model}")
+        sys.stdout.write(f"  {marker} {i}. {model}" + "\n")
 
 
 def handle_model_switch(
@@ -97,10 +98,10 @@ def handle_model_switch(
     Returns:
         tuple: (new_model, should_restart_conversation)
     """
-    print("\n📋 Select a model:")
+    sys.stdout.write("\n📋 Select a model:" + "\n")
     for i, model in enumerate(available_models, 1):
         marker = "✓" if model == current_model else " "
-        print(f"  {marker} {i}. {model}")
+        sys.stdout.write(f"  {marker} {i}. {model}" + "\n")
 
     try:
         choice = input("\nEnter number (or press Enter to cancel): ").strip()
@@ -108,13 +109,13 @@ def handle_model_switch(
             idx = int(choice) - 1
             if 0 <= idx < len(available_models):
                 new_model = available_models[idx]
-                print(f"\n✅ Switched to: {new_model}")
-                print("🔄 Starting new conversation with new model...\n")
+                sys.stdout.write(f"\n✅ Switched to: {new_model}" + "\n")
+                sys.stdout.write("🔄 Starting new conversation with new model...\n" + "\n")
                 return new_model, True
             else:
-                print("❌ Invalid choice")
+                sys.stdout.write("❌ Invalid choice" + "\n")
     except (ValueError, IndexError):
-        print("❌ Invalid input")
+        sys.stdout.write("❌ Invalid input" + "\n")
 
     return current_model, False
 
@@ -123,20 +124,23 @@ async def stream_response(client, user_input: str):
     """
     Stream response from the agent
     """
-    print("\n🤖 Assistant: ", end="", flush=True)
+    sys.stdout.write("\n🤖 Assistant: ")
+    sys.stdout.flush()
 
     try:
         await client.query(user_input)
 
         # Show loading indicator
-        print("⏳ thinking...", end="", flush=True)
+        sys.stdout.write("⏳ thinking...")
+        sys.stdout.flush()
 
         # Stream the response
         first_chunk = True
         async for msg in client.receive_response():
             # Clear loading indicator on first message
             if first_chunk:
-                print("\r🤖 Assistant: ", end="", flush=True)
+                sys.stdout.write("\r🤖 Assistant: ")
+                sys.stdout.flush()
                 first_chunk = False
 
             # Handle different message types
@@ -144,22 +148,25 @@ async def stream_response(client, user_input: str):
                 if msg.type == "content_block_delta":
                     # Streaming text delta
                     if hasattr(msg, "delta") and hasattr(msg.delta, "text"):
-                        print(msg.delta.text, end="", flush=True)
+                        sys.stdout.write(str(msg.delta.text))
+                        sys.stdout.flush()
                 elif msg.type == "content_block_start":
                     # Start of content block
                     if hasattr(msg, "content_block") and hasattr(
                         msg.content_block, "text"
                     ):
-                        print(msg.content_block.text, end="", flush=True)
+                        sys.stdout.write(str(msg.content_block.text))
+                        sys.stdout.flush()
 
             # Fallback to original content handling
             if hasattr(msg, "content"):
                 for content_block in msg.content:
                     if hasattr(content_block, "text"):
-                        print(content_block.text, end="", flush=True)
+                        sys.stdout.write(str(content_block.text))
+                        sys.stdout.flush()
 
-        print()  # New line after response
+        sys.stdout.write("" + "\n")  # New line after response
 
     except Exception as e:
-        print(f"\r\n❌ Error: {e}")
-        print("Please check your Waypoint gateway is running and configured correctly.")
+        sys.stdout.write(f"\r\n❌ Error: {e}" + "\n")
+        sys.stdout.write("Please check your Waypoint gateway is running and configured correctly." + "\n")

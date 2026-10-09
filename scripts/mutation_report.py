@@ -452,22 +452,20 @@ def main() -> int:
         try:
             stats = json.loads(stats_file.read_text())
         except json.JSONDecodeError as exc:
-            print(f"warning: could not parse {stats_file}: {exc}", file=sys.stderr)
+            sys.stderr.write(f"warning: could not parse {stats_file}: {exc}" + "\n")
 
     results = get_survivors()
     report = render(config, results, stats)
 
     out_path = ROOT / "mutation-report.md"
     out_path.write_text(report)
-    print(
-        f"Wrote {out_path} ({len(results.survivors)} survivor"
-        f"{'s' if len(results.survivors) != 1 else ''}, {len(report)} chars)"
+    sys.stdout.write(
+        f"Wrote {out_path} ({len(results.survivors)} survivor{('s' if len(results.survivors) != 1 else '')}, {len(report)} chars)"
+        + "\n"
     )
     if not results.survivors and not clean_sweep_is_provable(stats):
-        print(
-            "error: nothing was shown to have been killed, so the report cannot say "
-            "anything about the suite",
-            file=sys.stderr,
+        sys.stderr.write(
+            "error: nothing was shown to have been killed, so the report cannot say anything about the suite" + "\n"
         )
         return 1
     return 0

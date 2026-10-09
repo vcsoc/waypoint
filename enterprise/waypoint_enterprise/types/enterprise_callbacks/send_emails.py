@@ -1,5 +1,4 @@
 import enum
-from typing import Dict, List, Optional
 
 from pydantic import Field
 
@@ -26,7 +25,7 @@ class SendKeyCreatedEmailEvent(WebhookEvent):
 
 class SendKeyRotatedEmailEvent(WebhookEvent):
     virtual_key: str
-    key_alias: Optional[str] = None
+    key_alias: str | None = None
     """
     The virtual key that was rotated
     this will be sk-123xxx, since we will be emailing this to the user to start using the new key
@@ -44,12 +43,17 @@ class EmailEventSettings(LiteLLMBaseModel):
     event: EmailEvent
     enabled: bool
 class EmailEventSettingsUpdateRequest(LiteLLMBaseModel):
-    settings: List[EmailEventSettings]
+    settings: list[EmailEventSettings]
+
+
 class EmailEventSettingsResponse(LiteLLMBaseModel):
-    settings: List[EmailEventSettings]
+    settings: list[EmailEventSettings]
+
+
 class DefaultEmailSettings(LiteLLMBaseModel):
     """Default settings for email events"""
-    settings: Dict[EmailEvent, bool] = Field(
+
+    settings: dict[EmailEvent, bool] = Field(
         default_factory=lambda: {
             EmailEvent.virtual_key_created: True,  # On by default
             EmailEvent.new_user_invitation: True,  # On by default
@@ -58,10 +62,11 @@ class DefaultEmailSettings(LiteLLMBaseModel):
             EmailEvent.max_budget_alert: True,  # On by default
         }
     )
-    def to_dict(self) -> Dict[str, bool]:
+
+    def to_dict(self) -> dict[str, bool]:
         """Convert to dictionary with string keys for storage"""
         return {event.value: enabled for event, enabled in self.settings.items()}
     @classmethod
-    def get_defaults(cls) -> Dict[str, bool]:
+    def get_defaults(cls) -> dict[str, bool]:
         """Get the default settings as a dictionary with string keys"""
         return cls().to_dict()

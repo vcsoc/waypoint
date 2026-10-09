@@ -6,7 +6,7 @@ This example shows how to use the CLI authentication token
 in your Python scripts after running `lite login`.
 """
 
-from textwrap import indent
+import sys
 
 import waypoint
 
@@ -15,18 +15,18 @@ LITELLM_BASE_URL = "http://localhost:4000/"
 
 def main():
     """Using CLI token with Waypoint SDK"""
-    print("🚀 Using CLI Token with Waypoint SDK")
-    print("=" * 40)
+    sys.stdout.write("🚀 Using CLI Token with Waypoint SDK" + "\n")
+    sys.stdout.write(str("=" * 40) + "\n")
     # waypoint._turn_on_debug()
 
     # Get the CLI token
     api_key = waypoint.get_litellm_gateway_api_key()
 
     if not api_key:
-        print("❌ No CLI token found. Please run 'lite login' first.")
+        sys.stdout.write("❌ No CLI token found. Please run 'lite login' first." + "\n")
         return
 
-    print("✅ Found CLI token.")
+    sys.stdout.write("✅ Found CLI token." + "\n")
 
     available_models = waypoint.get_valid_models(
         check_provider_endpoint=True,
@@ -35,12 +35,12 @@ def main():
         api_base=LITELLM_BASE_URL,
     )
 
-    print("✅ Available models:")
+    sys.stdout.write("✅ Available models:" + "\n")
     if available_models:
         for i, model in enumerate(available_models, 1):
-            print(f"   {i:2d}. {model}")
+            sys.stdout.write(f"   {i:2d}. {model}" + "\n")
     else:
-        print("   No models available")
+        sys.stdout.write("   No models available" + "\n")
 
     # Use with Waypoint
     try:
@@ -50,15 +50,17 @@ def main():
             api_key=api_key,
             base_url=LITELLM_BASE_URL,
         )
-        print(f"✅ LLM Response: {response.model_dump_json(indent=4)}")
+        sys.stdout.write(f"✅ LLM Response: {response.model_dump_json(indent=4)}" + "\n")
     except Exception as e:
-        print(f"❌ Error: {e}")
+        sys.stdout.write(f"❌ Error: {e}" + "\n")
 
 
 if __name__ == "__main__":
     main()
 
-    print("\n💡 Tips:")
-    print("1. Run 'lite login' to authenticate first")
-    print("2. Replace 'https://your-proxy.com' with your actual proxy URL")
-    print("3. The token is stored in your OS keychain, or in ~/.waypoint/token.json when there is none")
+    sys.stdout.write("\n💡 Tips:" + "\n")
+    sys.stdout.write("1. Run 'lite login' to authenticate first" + "\n")
+    sys.stdout.write("2. Replace 'https://your-proxy.com' with your actual proxy URL" + "\n")
+    sys.stdout.write(
+        "3. The token is stored in your OS keychain, or in ~/.waypoint/token.json when there is none" + "\n"
+    )

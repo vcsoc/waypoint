@@ -30,7 +30,6 @@ import tempfile
 import textwrap
 import time
 from dataclasses import asdict, dataclass, field
-from typing import Optional
 
 import waypoint
 from waypoint.types.utils import CallTypes
@@ -869,7 +868,7 @@ def eval_problem(
     padding_factor: int,
     use_compression: bool,
     compression_trigger: int,
-    embedding_model: Optional[str],
+    embedding_model: str | None,
 ) -> RunResult:
     """Evaluate a single problem in either baseline or compressed mode."""
     mode = "compressed" if use_compression else "baseline"
@@ -959,7 +958,7 @@ def run_benchmark(
     num_runs: int = 1,
     padding_factor: int = 20,
     compression_trigger: int = 2000,
-    embedding_model: Optional[str] = None,
+    embedding_model: str | None = None,
 ) -> dict:
     """
     Run the full benchmark.
@@ -975,27 +974,28 @@ def run_benchmark(
     """
     problems = PROBLEMS[:num_problems] if num_problems > 0 else PROBLEMS
 
-    print(f"\n{'=' * 60}")
-    print("Prompt Compression Eval Harness")
-    print(f"{'=' * 60}")
-    print(f"Model:              {model}")
-    print(f"Problems:           {len(problems)}")
-    print(f"Runs per mode:      {num_runs}")
-    print(f"Padding factor:     {padding_factor}")
-    print(f"Compression trigger:{compression_trigger} tokens")
-    print(f"Embedding model:    {embedding_model or 'None (BM25 only)'}")
-    print(f"{'=' * 60}\n")
+    sys.stdout.write(f"\n{'=' * 60}" + "\n")
+    sys.stdout.write("Prompt Compression Eval Harness" + "\n")
+    sys.stdout.write(f"{'=' * 60}" + "\n")
+    sys.stdout.write(f"Model:              {model}" + "\n")
+    sys.stdout.write(f"Problems:           {len(problems)}" + "\n")
+    sys.stdout.write(f"Runs per mode:      {num_runs}" + "\n")
+    sys.stdout.write(f"Padding factor:     {padding_factor}" + "\n")
+    sys.stdout.write(f"Compression trigger:{compression_trigger} tokens" + "\n")
+    sys.stdout.write(f"Embedding model:    {embedding_model or 'None (BM25 only)'}" + "\n")
+    sys.stdout.write(f"{'=' * 60}\n" + "\n")
 
     baseline_results: list[RunResult] = []
     compressed_results: list[RunResult] = []
 
     for run_i in range(num_runs):
         if num_runs > 1:
-            print(f"--- Run {run_i + 1}/{num_runs} ---")
+            sys.stdout.write(f"--- Run {run_i + 1}/{num_runs} ---" + "\n")
 
         for p in problems:
             # Baseline (with padding, but no compression)
-            print(f"  [{p['id']}] baseline ... ", end="", flush=True)
+            sys.stdout.write(f"  [{p['id']}] baseline ... ")
+            sys.stdout.flush()
             r = eval_problem(
                 p,
                 model,
@@ -1005,10 +1005,11 @@ def run_benchmark(
                 embedding_model=embedding_model,
             )
             baseline_results.append(r)
-            print("PASS" if r.passed else f"FAIL ({r.error[:60]})")
+            sys.stdout.write(str("PASS" if r.passed else f"FAIL ({r.error[:60]})") + "\n")
 
             # Compressed
-            print(f"  [{p['id']}] compressed ... ", end="", flush=True)
+            sys.stdout.write(f"  [{p['id']}] compressed ... ")
+            sys.stdout.flush()
             r = eval_problem(
                 p,
                 model,
@@ -1019,31 +1020,31 @@ def run_benchmark(
             )
             compressed_results.append(r)
             status = "PASS" if r.passed else f"FAIL ({r.error[:60]})"
-            print(f"{status}  (ratio: {r.compression_ratio:.2%})")
+            sys.stdout.write(f"{status}  (ratio: {r.compression_ratio:.2%})" + "\n")
 
     # Aggregate
     base_agg = aggregate(baseline_results)
     comp_agg = aggregate(compressed_results)
 
-    print(f"\n{'=' * 60}")
-    print("RESULTS")
-    print(f"{'=' * 60}")
-    print(f"\n  Baseline (with {padding_factor} distractor snippets, no compression):")
-    print(
-        f"    Pass rate:         {base_agg['pass_rate']}% ({base_agg['passed']}/{base_agg['total']})"
+    sys.stdout.write(f"\n{'=' * 60}" + "\n")
+    sys.stdout.write("RESULTS" + "\n")
+    sys.stdout.write(f"{'=' * 60}" + "\n")
+    sys.stdout.write(f"\n  Baseline (with {padding_factor} distractor snippets, no compression):" + "\n")
+    sys.stdout.write(
+        f"    Pass rate:         {base_agg['pass_rate']}% ({base_agg['passed']}/{base_agg['total']})" + "\n"
     )
-    print(f"    Avg prompt tokens: {base_agg['avg_prompt_tokens']}")
-    print(f"    Avg total tokens:  {base_agg['avg_total_tokens']}")
-    print(f"    Avg latency:       {base_agg['avg_latency_ms']}ms")
+    sys.stdout.write(f"    Avg prompt tokens: {base_agg['avg_prompt_tokens']}" + "\n")
+    sys.stdout.write(f"    Avg total tokens:  {base_agg['avg_total_tokens']}" + "\n")
+    sys.stdout.write(f"    Avg latency:       {base_agg['avg_latency_ms']}ms" + "\n")
 
-    print(f"\n  Compressed (waypoint.compress → then call model):")
-    print(
-        f"    Pass rate:         {comp_agg['pass_rate']}% ({comp_agg['passed']}/{comp_agg['total']})"
+    sys.stdout.write("\n  Compressed (waypoint.compress → then call model):" + "\n")
+    sys.stdout.write(
+        f"    Pass rate:         {comp_agg['pass_rate']}% ({comp_agg['passed']}/{comp_agg['total']})" + "\n"
     )
-    print(f"    Avg prompt tokens: {comp_agg['avg_prompt_tokens']}")
-    print(f"    Avg total tokens:  {comp_agg['avg_total_tokens']}")
-    print(f"    Avg latency:       {comp_agg['avg_latency_ms']}ms")
-    print(f"    Avg compression:   {comp_agg['avg_compression_ratio']:.2%}")
+    sys.stdout.write(f"    Avg prompt tokens: {comp_agg['avg_prompt_tokens']}" + "\n")
+    sys.stdout.write(f"    Avg total tokens:  {comp_agg['avg_total_tokens']}" + "\n")
+    sys.stdout.write(f"    Avg latency:       {comp_agg['avg_latency_ms']}ms" + "\n")
+    sys.stdout.write(f"    Avg compression:   {comp_agg['avg_compression_ratio']:.2%}" + "\n")
 
     token_savings = base_agg["avg_prompt_tokens"] - comp_agg["avg_prompt_tokens"]
     token_pct = (
@@ -1054,10 +1055,10 @@ def run_benchmark(
     latency_diff = base_agg["avg_latency_ms"] - comp_agg["avg_latency_ms"]
     pass_diff = comp_agg["pass_rate"] - base_agg["pass_rate"]
 
-    print(f"\n  Delta (compressed vs baseline):")
-    print(f"    Token savings:     {token_savings} tokens ({token_pct}%)")
-    print(f"    Latency delta:     {latency_diff:+.1f}ms")
-    print(f"    Pass rate delta:   {pass_diff:+.1f}%")
+    sys.stdout.write("\n  Delta (compressed vs baseline):" + "\n")
+    sys.stdout.write(f"    Token savings:     {token_savings} tokens ({token_pct}%)" + "\n")
+    sys.stdout.write(f"    Latency delta:     {latency_diff:+.1f}ms" + "\n")
+    sys.stdout.write(f"    Pass rate delta:   {pass_diff:+.1f}%" + "\n")
 
     # Save JSON report
     ts = time.strftime("%Y-%m-%d_%H-%M-%S")
@@ -1077,7 +1078,7 @@ def run_benchmark(
     }
     with open(report_path, "w") as f:
         json.dump(report, f, indent=2)
-    print(f"\nFull report saved to: {report_path}")
+    sys.stdout.write(f"\nFull report saved to: {report_path}" + "\n")
 
     return report
 

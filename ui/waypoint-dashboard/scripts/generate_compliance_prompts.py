@@ -18,6 +18,7 @@ import argparse
 import csv
 import os
 import sys
+from typing import Final
 
 
 def escape_ts_string(s: str) -> str:
@@ -82,17 +83,14 @@ def main() -> None:
     # --- Read CSV ---
     csv_path = os.path.abspath(args.csv)
     if not os.path.isfile(csv_path):
-        print(f"Error: CSV file not found: {csv_path}", file=sys.stderr)
+        sys.stderr.write(f"Error: CSV file not found: {csv_path}" + "\n")
         sys.exit(1)
 
-    rows: list[dict[str, str]] = []
     with open(csv_path, newline="", encoding="utf-8") as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            rows.append(row)
+        rows: Final = list(csv.DictReader(f))
 
     if not rows:
-        print("Error: CSV file is empty.", file=sys.stderr)
+        sys.stderr.write("Error: CSV file is empty." + "\n")
         sys.exit(1)
 
     # --- Derive variable names from --var-prefix ---
@@ -106,9 +104,7 @@ def main() -> None:
     # Header comment
     csv_basename = os.path.basename(args.csv)
     lines.append(f"// Auto-generated from {csv_basename} — do not edit manually.")
-    lines.append(
-        f"// Regenerate: python scripts/generate_compliance_prompts.py --csv ... --output ..."
-    )
+    lines.append("// Regenerate: python scripts/generate_compliance_prompts.py --csv ... --output ...")
     lines.append("")
     lines.append(
         'import type { CompliancePrompt, ComplianceFramework } from "./compliancePrompts";'
@@ -149,7 +145,7 @@ def main() -> None:
     with open(output_path, "w", encoding="utf-8") as f:
         f.write("\n".join(lines))
 
-    print(f"Generated {len(rows)} prompts -> {output_path}")
+    sys.stdout.write(f"Generated {len(rows)} prompts -> {output_path}" + "\n")
 
 
 if __name__ == "__main__":

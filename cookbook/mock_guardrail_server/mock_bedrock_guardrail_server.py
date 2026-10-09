@@ -13,7 +13,8 @@ The server will start on http://localhost:8080
 
 import os
 import re
-from typing import Any, Dict, List, Literal, Optional
+import sys
+from typing import Any, Literal
 
 from fastapi import Depends, FastAPI, Header, HTTPException, status
 from fastapi.responses import JSONResponse
@@ -34,11 +35,11 @@ class BedrockContentItem(BaseModel):
 
 class BedrockRequest(BaseModel):
     source: Literal["INPUT", "OUTPUT"]
-    content: List[BedrockContentItem] = Field(default_factory=list)
+    content: list[BedrockContentItem] = Field(default_factory=list)
 
 
 class BedrockGuardrailOutput(BaseModel):
-    text: Optional[str] = None
+    text: str | None = None
 
 
 class TopicPolicyItem(BaseModel):
@@ -48,7 +49,7 @@ class TopicPolicyItem(BaseModel):
 
 
 class TopicPolicy(BaseModel):
-    topics: List[TopicPolicyItem] = Field(default_factory=list)
+    topics: list[TopicPolicyItem] = Field(default_factory=list)
 
 
 class ContentFilterItem(BaseModel):
@@ -58,7 +59,7 @@ class ContentFilterItem(BaseModel):
 
 
 class ContentPolicy(BaseModel):
-    filters: List[ContentFilterItem] = Field(default_factory=list)
+    filters: list[ContentFilterItem] = Field(default_factory=list)
 
 
 class CustomWord(BaseModel):
@@ -67,8 +68,8 @@ class CustomWord(BaseModel):
 
 
 class WordPolicy(BaseModel):
-    customWords: List[CustomWord] = Field(default_factory=list)
-    managedWordLists: List[Dict[str, Any]] = Field(default_factory=list)
+    customWords: list[CustomWord] = Field(default_factory=list)
+    managedWordLists: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class PiiEntity(BaseModel):
@@ -85,8 +86,8 @@ class RegexMatch(BaseModel):
 
 
 class SensitiveInformationPolicy(BaseModel):
-    piiEntities: List[PiiEntity] = Field(default_factory=list)
-    regexes: List[RegexMatch] = Field(default_factory=list)
+    piiEntities: list[PiiEntity] = Field(default_factory=list)
+    regexes: list[RegexMatch] = Field(default_factory=list)
 
 
 class ContextualGroundingFilter(BaseModel):
@@ -97,24 +98,22 @@ class ContextualGroundingFilter(BaseModel):
 
 
 class ContextualGroundingPolicy(BaseModel):
-    filters: List[ContextualGroundingFilter] = Field(default_factory=list)
+    filters: list[ContextualGroundingFilter] = Field(default_factory=list)
 
 
 class Assessment(BaseModel):
-    topicPolicy: Optional[TopicPolicy] = None
-    contentPolicy: Optional[ContentPolicy] = None
-    wordPolicy: Optional[WordPolicy] = None
-    sensitiveInformationPolicy: Optional[SensitiveInformationPolicy] = None
-    contextualGroundingPolicy: Optional[ContextualGroundingPolicy] = None
+    topicPolicy: TopicPolicy | None = None
+    contentPolicy: ContentPolicy | None = None
+    wordPolicy: WordPolicy | None = None
+    sensitiveInformationPolicy: SensitiveInformationPolicy | None = None
+    contextualGroundingPolicy: ContextualGroundingPolicy | None = None
 
 
 class BedrockGuardrailResponse(BaseModel):
-    usage: Dict[str, int] = Field(
-        default_factory=lambda: {"topicPolicyUnits": 1, "contentPolicyUnits": 1}
-    )
+    usage: dict[str, int] = Field(default_factory=lambda: {"topicPolicyUnits": 1, "contentPolicyUnits": 1})
     action: Literal["NONE", "GUARDRAIL_INTERVENED"] = "NONE"
-    outputs: List[BedrockGuardrailOutput] = Field(default_factory=list)
-    assessments: List[Assessment] = Field(default_factory=list)
+    outputs: list[BedrockGuardrailOutput] = Field(default_factory=list)
+    assessments: list[Assessment] = Field(default_factory=list)
 
 
 # ============================================================================
@@ -125,11 +124,9 @@ class BedrockGuardrailResponse(BaseModel):
 class GuardrailConfig(BaseModel):
     """Configuration for mock guardrail behavior"""
 
-    blocked_words: List[str] = Field(
-        default_factory=lambda: ["offensive", "inappropriate", "badword"]
-    )
-    blocked_topics: List[str] = Field(default_factory=lambda: ["violence", "illegal"])
-    pii_patterns: Dict[str, str] = Field(
+    blocked_words: list[str] = Field(default_factory=lambda: ["offensive", "inappropriate", "badword"])
+    blocked_topics: list[str] = Field(default_factory=lambda: ["violence", "illegal"])
+    pii_patterns: dict[str, str] = Field(
         default_factory=lambda: {
             "EMAIL": r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b",
             "PHONE": r"\b\d{3}[-.]?\d{3}[-.]?\d{4}\b",
@@ -160,7 +157,7 @@ app = FastAPI(
 # ============================================================================
 
 
-async def verify_bearer_token(authorization: Optional[str] = Header(None)) -> str:
+async def verify_bearer_token(authorization: str | None = Header(None)) -> str:
     """
     Verify the Bearer token from the Authorization header.
 
@@ -182,7 +179,7 @@ async def verify_bearer_token(authorization: Optional[str] = Header(None)) -> st
 
     # Check if it's a Bearer token
     parts = authorization.split()
-    print(f"parts: {parts}")
+    sys.stdout.write(f"parts: {parts}" + "\n")
     if len(parts) != 2 or parts[0].lower() != "bearer":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -207,7 +204,7 @@ async def verify_bearer_token(authorization: Optional[str] = Header(None)) -> st
 # ============================================================================
 
 
-def check_blocked_words(text: str) -> Optional[WordPolicy]:
+def check_blocked_words(text: str) -> WordPolicy | None:
     """Check if text contains blocked words"""
     found_words = []
     text_lower = text.lower()
@@ -221,7 +218,7 @@ def check_blocked_words(text: str) -> Optional[WordPolicy]:
     return None
 
 
-def check_blocked_topics(text: str) -> Optional[TopicPolicy]:
+def check_blocked_topics(text: str) -> TopicPolicy | None:
     """Check if text contains blocked topics"""
     found_topics = []
     text_lower = text.lower()
@@ -237,7 +234,7 @@ def check_blocked_topics(text: str) -> Optional[TopicPolicy]:
     return None
 
 
-def check_pii(text: str) -> tuple[Optional[SensitiveInformationPolicy], str]:
+def check_pii(text: str) -> tuple[SensitiveInformationPolicy | None, str]:
     """
     Check for PII in text and return policy + anonymized text
 
@@ -266,7 +263,7 @@ def check_pii(text: str) -> tuple[Optional[SensitiveInformationPolicy], str]:
                     )
         except re.error:
             # Invalid regex pattern - skip it and log a warning
-            print(f"Warning: Invalid regex pattern for PII type {pii_type}: {pattern}")
+            sys.stdout.write(f"Warning: Invalid regex pattern for PII type {pii_type}: {pattern}" + "\n")
             continue
 
     if pii_entities:
@@ -277,7 +274,7 @@ def check_pii(text: str) -> tuple[Optional[SensitiveInformationPolicy], str]:
 
 def process_guardrail_request(
     request: BedrockRequest,
-) -> tuple[BedrockGuardrailResponse, List[str]]:
+) -> tuple[BedrockGuardrailResponse, list[str]]:
     """
     Process a guardrail request and return the response.
 
@@ -389,25 +386,25 @@ This is a beta API. Please help us improve it.
 
 
 class LitellmBasicGuardrailRequest(BaseModel):
-    texts: List[str]
-    images: Optional[List[str]] = None
-    tools: Optional[List[dict]] = None
-    tool_calls: Optional[List[dict]] = None
-    request_data: Dict[str, Any] = Field(default_factory=dict)
-    additional_provider_specific_params: Dict[str, Any] = Field(default_factory=dict)
+    texts: list[str]
+    images: list[str] | None = None
+    tools: list[dict] | None = None
+    tool_calls: list[dict] | None = None
+    request_data: dict[str, Any] = Field(default_factory=dict)
+    additional_provider_specific_params: dict[str, Any] = Field(default_factory=dict)
     input_type: Literal["request", "response"]
-    litellm_call_id: Optional[str] = None
-    litellm_trace_id: Optional[str] = None
-    structured_messages: Optional[List[Dict[str, Any]]] = None
+    litellm_call_id: str | None = None
+    litellm_trace_id: str | None = None
+    structured_messages: list[dict[str, Any]] | None = None
 
 
 class LitellmBasicGuardrailResponse(BaseModel):
     action: Literal[
         "BLOCKED", "NONE", "GUARDRAIL_INTERVENED"
     ]  # BLOCKED = litellm will raise an error, NONE = litellm will continue, GUARDRAIL_INTERVENED = litellm will continue, but the text was modified by the guardrail
-    blocked_reason: Optional[str] = None  # only if action is BLOCKED, otherwise None
-    texts: Optional[List[str]] = None
-    images: Optional[List[str]] = None
+    blocked_reason: str | None = None  # only if action is BLOCKED, otherwise None
+    texts: list[str] | None = None
+    images: list[str] | None = None
 
 
 @app.post(
@@ -429,7 +426,7 @@ async def beta_litellm_basic_guardrail_api(
     Returns:
         LitellmBasicGuardrailResponse with analysis results
     """
-    print(f"request: {request}")
+    sys.stdout.write(f"request: {request}" + "\n")
     if any("ishaan" in text.lower() for text in request.texts):
         return LitellmBasicGuardrailResponse(
             action="BLOCKED", blocked_reason="Ishaan is not allowed"
@@ -510,31 +507,18 @@ if __name__ == "__main__":
     # Update config with environment token
     GUARDRAIL_CONFIG.bearer_token = bearer_token
 
-    print("=" * 80)
-    print("Mock Bedrock Guardrail API Server")
-    print("=" * 80)
-    print(f"Server starting on: http://{host}:{port}")
-    print(f"Bearer Token: {bearer_token}")
-    print(f"Endpoint: POST /guardrail/{{id}}/version/{{version}}/apply")
-    print("=" * 80)
-    print("\nExample curl command:")
-    print(
-        f"""
-curl -X POST "http://{host}:{port}/guardrail/test-guardrail/version/1/apply" \\
-  -H "Authorization: Bearer {bearer_token}" \\
-  -H "Content-Type: application/json" \\
-  -d '{{
-    "source": "INPUT",
-    "content": [
-      {{
-        "text": {{
-          "text": "Hello, my email is test@example.com"
-        }}
-      }}
-    ]
-  }}'
-    """
+    sys.stdout.write(str("=" * 80) + "\n")
+    sys.stdout.write("Mock Bedrock Guardrail API Server" + "\n")
+    sys.stdout.write(str("=" * 80) + "\n")
+    sys.stdout.write(f"Server starting on: http://{host}:{port}" + "\n")
+    sys.stdout.write(f"Bearer Token: {bearer_token}" + "\n")
+    sys.stdout.write("Endpoint: POST /guardrail/{id}/version/{version}/apply" + "\n")
+    sys.stdout.write(str("=" * 80) + "\n")
+    sys.stdout.write("\nExample curl command:" + "\n")
+    sys.stdout.write(
+        f"""\ncurl -X POST "http://{host}:{port}/guardrail/test-guardrail/version/1/apply" \\\n  -H "Authorization: Bearer {bearer_token}" \\\n  -H "Content-Type: application/json" \\\n  -d '{{\n    "source": "INPUT",\n    "content": [\n      {{\n        "text": {{\n          "text": "Hello, my email is test@example.com"\n        }}\n      }}\n    ]\n  }}'\n    """
+        + "\n"
     )
-    print("=" * 80)
+    sys.stdout.write(str("=" * 80) + "\n")
 
     uvicorn.run(app, host=host, port=port)

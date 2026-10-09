@@ -3,6 +3,16 @@ import gc
 import threading
 import weakref
 from contextvars import ContextVar
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
+
+    from waypoint.rust_bridge.lifecycle import Execution, drive
+
+    def await_execution(awaitable: Awaitable[object]) -> Execution: ...
+
+    def calling_execution(callback: Callable[[], object]) -> Execution: ...
 
 
 async def exercise():

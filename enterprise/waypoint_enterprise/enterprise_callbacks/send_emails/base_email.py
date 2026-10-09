@@ -6,7 +6,7 @@ Base class for sending emails to user after creating keys or invite links
 import html
 import json
 import os
-from typing import Final, List, Literal, Optional
+from typing import Final, Literal
 
 from waypoint_enterprise.types.enterprise_callbacks.send_emails import (
     EmailEvent,
@@ -60,7 +60,7 @@ def _max_budget_alert_id(user_info: CallInfo) -> str:
     return user_info.token or user_info.user_id or "default_id"
 
 
-def _parse_email_list(raw) -> List[str]:
+def _parse_email_list(raw) -> list[str]:
     """Parse emails from a list or comma-separated string."""
     if isinstance(raw, list):
         return [e.strip() for e in raw if isinstance(e, str) and e.strip()]
@@ -80,7 +80,7 @@ class BaseEmailLogger(CustomLogger):
 
     def __init__(
         self,
-        internal_usage_cache: Optional[DualCache] = None,
+        internal_usage_cache: DualCache | None = None,
         **kwargs,
     ):
         """
@@ -124,7 +124,6 @@ class BaseEmailLogger(CustomLogger):
             html_body=email_html_content,
         )
 
-        pass
 
     async def send_key_created_email(
         self, send_key_created_email_event: SendKeyCreatedEmailEvent
@@ -171,7 +170,6 @@ class BaseEmailLogger(CustomLogger):
             subject=email_params.subject,
             html_body=email_html_content,
         )
-        pass
 
     async def send_key_rotated_email(
         self, send_key_rotated_email_event: SendKeyRotatedEmailEvent
@@ -218,7 +216,6 @@ class BaseEmailLogger(CustomLogger):
             subject=email_params.subject,
             html_body=email_html_content,
         )
-        pass
 
     async def send_soft_budget_alert_email(self, event: WebhookEvent):
         """
@@ -260,7 +257,6 @@ class BaseEmailLogger(CustomLogger):
             subject=email_params.subject,
             html_body=email_html_content,
         )
-        pass
 
     async def send_team_soft_budget_alert_email(self, event: WebhookEvent):
         """
@@ -268,7 +264,7 @@ class BaseEmailLogger(CustomLogger):
         Supports multiple recipients via alert_emails field from team metadata
         """
         # Collect all recipient emails
-        recipient_emails: List[str] = []
+        recipient_emails: list[str] = []
 
         # Add additional alert emails from team metadata.soft_budget_alert_emails
         if hasattr(event, "alert_emails") and event.alert_emails:
@@ -335,13 +331,12 @@ class BaseEmailLogger(CustomLogger):
             subject=email_params.subject,
             html_body=email_html_content,
         )
-        pass
 
     async def send_max_budget_alert_email(
         self,
         event: WebhookEvent,
-        threshold_pct: Optional[int] = None,
-        recipient_emails: Optional[List[str]] = None,
+        threshold_pct: int | None = None,
+        recipient_emails: list[str] | None = None,
     ):
         """
         Send email to user when max budget alert threshold is reached.
@@ -711,9 +706,9 @@ class BaseEmailLogger(CustomLogger):
     async def _get_email_params(
         self,
         email_event: EmailEvent,
-        user_id: Optional[str] = None,
-        user_email: Optional[str] = None,
-        event_message: Optional[str] = None,
+        user_id: str | None = None,
+        user_email: str | None = None,
+        event_message: str | None = None,
     ) -> EmailParams:
         """
         Get common email parameters used across different email sending methods
@@ -738,9 +733,7 @@ class BaseEmailLogger(CustomLogger):
         unused_custom_fields = []
 
         # Function to safely get custom value or default
-        def get_custom_or_default(
-            custom_value: Optional[str], default_value: str, field_name: str
-        ) -> str:
+        def get_custom_or_default(custom_value: str | None, default_value: str, field_name: str) -> str:
             if (
                 custom_value is not None
             ):  # Only check premium if trying to use custom value
@@ -793,9 +786,7 @@ class BaseEmailLogger(CustomLogger):
             else "Waypoint Notification"
         )
 
-        recipient_email: Optional[str] = (
-            user_email or await self._lookup_user_email_from_db(user_id=user_id)
-        )
+        recipient_email: str | None = user_email or await self._lookup_user_email_from_db(user_id=user_id)
         if recipient_email is None:
             raise ValueError(
                 f"User email not found for user_id: {user_id}. User email is required to send email."
@@ -826,7 +817,7 @@ class BaseEmailLogger(CustomLogger):
             signature=signature,
         )
 
-    def _format_key_budget(self, max_budget: Optional[float]) -> str:
+    def _format_key_budget(self, max_budget: float | None) -> str:
         """
         Format the key budget to be displayed in the email
         """
@@ -834,7 +825,7 @@ class BaseEmailLogger(CustomLogger):
             return "No budget"
         return f"${max_budget}"
 
-    async def _lookup_user_email_from_db(self, user_id: Optional[str]) -> Optional[str]:
+    async def _lookup_user_email_from_db(self, user_id: str | None) -> str | None:
         """
         Lookup user email from user_id
         """
@@ -854,7 +845,7 @@ class BaseEmailLogger(CustomLogger):
             return user_row.user_email
         return None
 
-    async def _get_invitation_link(self, user_id: Optional[str], base_url: str) -> str:
+    async def _get_invitation_link(self, user_id: str | None, base_url: str) -> str:
         """
         Get invitation link for the user
         """
@@ -971,7 +962,7 @@ class BaseEmailLogger(CustomLogger):
     async def send_email(
         self,
         from_email: str,
-        to_email: List[str],
+        to_email: list[str],
         subject: str,
         html_body: str,
     ):

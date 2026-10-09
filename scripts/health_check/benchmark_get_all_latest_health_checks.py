@@ -17,7 +17,7 @@ import sys
 import time
 import tracemalloc
 from datetime import datetime, timedelta, timezone
-from typing import Any, List
+from typing import Any
 
 SEED_MARKER = (
     "benchmark_get_all_latest_health_checks.py"  # Utility Marker for cleanup process.
@@ -47,8 +47,8 @@ def _build_batch(
     batch_size: int,
     num_models: int,
     base_time: datetime,
-) -> List[dict[str, Any]]:
-    rows: List[dict[str, Any]] = []
+) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
     for i in range(batch_size):
         global_i = batch_index * batch_size + i
         model_idx = global_i % max(num_models, 1)
@@ -93,8 +93,9 @@ async def _seed(
         inserted += n
         batch_idx += 1
         if batch_idx % 10 == 0:
-            print(f"  {inserted}/{total_rows}", flush=True)
-    print(f"Seeded {inserted} rows ({SEED_MARKER}).")
+            sys.stdout.write(f"  {inserted}/{total_rows}" + "\n")
+            sys.stdout.flush()
+    sys.stdout.write(f"Seeded {inserted} rows ({SEED_MARKER})." + "\n")
 
 
 async def _cleanup(prisma: Any) -> None:
@@ -102,13 +103,13 @@ async def _cleanup(prisma: Any) -> None:
         where={"checked_by": SEED_MARKER},
     )
     n = getattr(result, "count", result)
-    print(f"Deleted {n} rows.")
+    sys.stdout.write(f"Deleted {n} rows." + "\n")
 
 
 async def _bench(prisma: Any) -> None:
     gc.collect()
     rss0 = _rss_kb_linux()
-    print(f"RSS (after gc): {_fmt_kb(rss0)}")
+    sys.stdout.write(f"RSS (after gc): {_fmt_kb(rss0)}" + "\n")
 
     tracemalloc.start()
     t0 = time.perf_counter()
@@ -121,9 +122,9 @@ async def _bench(prisma: Any) -> None:
 
     gc.collect()
     rss1 = _rss_kb_linux()
-    print(f"get_all_latest_health_checks: {len(rows)} rows in {elapsed:.2f}s")
-    print(f"tracemalloc peak: {peak / 1e6:.2f} MiB")
-    print(f"RSS after: {_fmt_kb(rss1)}")
+    sys.stdout.write(f"get_all_latest_health_checks: {len(rows)} rows in {elapsed:.2f}s" + "\n")
+    sys.stdout.write(f"tracemalloc peak: {peak / 1000000.0:.2f} MiB" + "\n")
+    sys.stdout.write(f"RSS after: {_fmt_kb(rss1)}" + "\n")
 
 
 async def _amain() -> int:
@@ -138,7 +139,7 @@ async def _amain() -> int:
 
     database_url = os.getenv("DATABASE_URL")
     if not database_url:
-        print("Set DATABASE_URL.", file=sys.stderr)
+        sys.stderr.write("Set DATABASE_URL." + "\n")
         return 1
 
     repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -159,7 +160,7 @@ async def _amain() -> int:
     try:
         await prisma.connect()
     except Exception as e:
-        print(f"Connect failed: {e}", file=sys.stderr)
+        sys.stderr.write(f"Connect failed: {e}" + "\n")
         return 1
 
     try:

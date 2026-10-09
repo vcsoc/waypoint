@@ -5,6 +5,7 @@ import argparse
 import asyncio
 import os
 import statistics
+import sys
 import time
 
 import aiohttp
@@ -97,17 +98,17 @@ async def run_benchmark(url, n_requests, max_concurrent):
 
 def print_run_results(run_num, total_runs, result):
     label = f"  Run {run_num}/{total_runs}" if total_runs > 1 else "  Results"
-    print(f"\n{'='*60}")
-    print(label)
-    print(f"{'='*60}")
-    print(f"  Requests:    {result['n_requests']}  (failures: {result['failures']})")
-    print(f"  Concurrency: {result['max_concurrent']}")
-    print(f"  Wall time:   {result['wall_time']:.2f}s")
-    print(f"  Throughput:  {result['throughput']:.0f} req/s")
-    print(f"  Mean:        {result['mean']:.2f} ms")
-    print(f"  P50:         {result['p50']:.2f} ms")
-    print(f"  P95:         {result['p95']:.2f} ms")
-    print(f"  P99:         {result['p99']:.2f} ms")
+    sys.stdout.write(f"\n{'=' * 60}" + "\n")
+    sys.stdout.write(str(label) + "\n")
+    sys.stdout.write(f"{'=' * 60}" + "\n")
+    sys.stdout.write(f"  Requests:    {result['n_requests']}  (failures: {result['failures']})" + "\n")
+    sys.stdout.write(f"  Concurrency: {result['max_concurrent']}" + "\n")
+    sys.stdout.write(f"  Wall time:   {result['wall_time']:.2f}s" + "\n")
+    sys.stdout.write(f"  Throughput:  {result['throughput']:.0f} req/s" + "\n")
+    sys.stdout.write(f"  Mean:        {result['mean']:.2f} ms" + "\n")
+    sys.stdout.write(f"  P50:         {result['p50']:.2f} ms" + "\n")
+    sys.stdout.write(f"  P95:         {result['p95']:.2f} ms" + "\n")
+    sys.stdout.write(f"  P99:         {result['p99']:.2f} ms" + "\n")
 
 
 def print_aggregate(results):
@@ -121,9 +122,7 @@ def print_aggregate(results):
     n = len(all_latencies)
 
     if not all_latencies:
-        print(
-            f"\n  Aggregate: all {total_requests} requests failed across {len(results)} runs"
-        )
+        sys.stdout.write(f"\n  Aggregate: all {total_requests} requests failed across {len(results)} runs" + "\n")
         return
 
     mean = statistics.mean(all_latencies) * 1000
@@ -132,15 +131,15 @@ def print_aggregate(results):
     p99 = all_latencies[int(n * 0.99)] * 1000
     avg_throughput = statistics.mean(r["throughput"] for r in results)
 
-    print(f"\n{'='*60}")
-    print(f"  Aggregate ({len(results)} runs, {total_requests} total requests)")
-    print(f"{'='*60}")
-    print(f"  Failures:    {total_failures}")
-    print(f"  Throughput:  {avg_throughput:.0f} req/s (avg across runs)")
-    print(f"  Mean:        {mean:.2f} ms")
-    print(f"  P50:         {p50:.2f} ms")
-    print(f"  P95:         {p95:.2f} ms")
-    print(f"  P99:         {p99:.2f} ms")
+    sys.stdout.write(f"\n{'=' * 60}" + "\n")
+    sys.stdout.write(f"  Aggregate ({len(results)} runs, {total_requests} total requests)" + "\n")
+    sys.stdout.write(f"{'=' * 60}" + "\n")
+    sys.stdout.write(f"  Failures:    {total_failures}" + "\n")
+    sys.stdout.write(f"  Throughput:  {avg_throughput:.0f} req/s (avg across runs)" + "\n")
+    sys.stdout.write(f"  Mean:        {mean:.2f} ms" + "\n")
+    sys.stdout.write(f"  P50:         {p50:.2f} ms" + "\n")
+    sys.stdout.write(f"  P95:         {p95:.2f} ms" + "\n")
+    sys.stdout.write(f"  P99:         {p99:.2f} ms" + "\n")
 
     # Run-to-run variance
     run_means = [r["mean"] for r in results]
@@ -150,9 +149,9 @@ def print_aggregate(results):
         cov_throughput = (
             statistics.stdev(run_throughputs) / statistics.mean(run_throughputs) * 100
         )
-        print(f"\n  Run-to-run variance:")
-        print(f"    Latency CoV:    {cov_latency:.1f}%")
-        print(f"    Throughput CoV: {cov_throughput:.1f}%")
+        sys.stdout.write("\n  Run-to-run variance:" + "\n")
+        sys.stdout.write(f"    Latency CoV:    {cov_latency:.1f}%" + "\n")
+        sys.stdout.write(f"    Throughput CoV: {cov_throughput:.1f}%" + "\n")
 
 
 async def main():
@@ -163,10 +162,8 @@ async def main():
     parser.add_argument("--runs", type=int, default=1)
     args = parser.parse_args()
 
-    print(f"Benchmarking {args.url}")
-    print(
-        f"  {args.requests} requests, {args.max_concurrent} concurrency, {args.runs} run(s)"
-    )
+    sys.stdout.write(f"Benchmarking {args.url}" + "\n")
+    sys.stdout.write(f"  {args.requests} requests, {args.max_concurrent} concurrency, {args.runs} run(s)" + "\n")
 
     results = []
     for run_num in range(1, args.runs + 1):

@@ -7,11 +7,11 @@ app = FastAPI()
 @app.post("/log-event")
 async def log_event(request: Request):
     try:
-        print("Received /log-event request")  # noqa
+        print("Received /log-event request")  # noqa: T201  # This example displays log events on stdout
         # Assuming the incoming request has JSON data
         data = await request.json()
-        print("Received request data:")  # noqa
-        print(data)  # noqa
+        print("Received request data:")  # noqa: T201  # This example displays log events on stdout
+        print(data)  # noqa: T201  # This example displays log events on stdout
 
         # Your additional logic can go here
         # For now, just printing the received data

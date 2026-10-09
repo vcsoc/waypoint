@@ -21,7 +21,7 @@ if __name__ == "__main__":
             key=lambda x: x[1], reverse=True
         )  # Sort files by length in descending order
         for filename, length in bad_files:
-            print(f"{filename}: {length} lines")
+            sys.stdout.write(f"{filename}: {length} lines" + "\n")
 
         sys.exit(1)
     else:

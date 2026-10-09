@@ -40,12 +40,12 @@ def main(identity: str, owner_uid: int, root_pids: tuple[int, ...]) -> int:
             continue
     psutil.wait_procs(remaining, timeout=2)
     survivors: Final = owned_processes(identity, owner_uid)
-    print(
-        f"Owned integration processes: {len(owned)}, roots: {len(roots)}, "
-        f"residual: {len(residual)}, forced: {len(remaining)}, remaining: {len(survivors)}"
+    sys.stdout.write(
+        f"Owned integration processes: {len(owned)}, roots: {len(roots)}, residual: {len(residual)}, forced: {len(remaining)}, remaining: {len(survivors)}"
+        + "\n"
     )
     for process in remaining:
-        print(f"Forced cleanup was required for PID {process.pid}")
+        sys.stdout.write(f"Forced cleanup was required for PID {process.pid}" + "\n")
     return 1 if remaining or survivors else 0
 
 

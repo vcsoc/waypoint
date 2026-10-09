@@ -529,13 +529,13 @@ def main(argv: Sequence[str]) -> int:
     if args.write and outcome.has_changes:
         for relpath in COST_MAP_RELPATHS:
             (args.repo_root / relpath).write_text(_serialize(outcome.cost_map))
-    print(render_summary(outcome))
-    print()
-    print(body)
+    sys.stdout.write(str(render_summary(outcome)) + "\n")
+    sys.stdout.write("" + "\n")
+    sys.stdout.write(str(body) + "\n")
     if not args.write:
-        print("dry run: no files were touched")
+        sys.stdout.write("dry run: no files were touched" + "\n")
     elif not outcome.has_changes:
-        print("registry already in sync: no files were touched")
+        sys.stdout.write("registry already in sync: no files were touched" + "\n")
     return 0
 
 
@@ -543,5 +543,5 @@ if __name__ == "__main__":
     try:
         raise SystemExit(main(sys.argv[1:]))
     except SyncError as error:
-        print(f"SYNC FAILED: {error}", file=sys.stderr)
+        sys.stderr.write(f"SYNC FAILED: {error}" + "\n")
         raise SystemExit(1) from error

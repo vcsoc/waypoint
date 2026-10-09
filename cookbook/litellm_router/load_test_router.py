@@ -54,14 +54,14 @@ questions = []
 
 for file_path in file_paths:
     try:
-        print(file_path)
+        sys.stdout.write(str(file_path) + "\n")
         with open(file_path, "r") as file:
             content = file.read()
             questions.append(content)
     except FileNotFoundError as e:
-        print(f"File not found: {e}")
+        sys.stdout.write(f"File not found: {e}" + "\n")
     except Exception as e:
-        print(f"An error occurred: {e}")
+        sys.stdout.write(f"An error occurred: {e}" + "\n")
 
 # for q in questions:
 #     print(q)
@@ -89,7 +89,7 @@ def make_openai_completion(question):
                 }
             ],
         )
-        print(response)
+        sys.stdout.write(str(response) + "\n")
         end_time = time.time()
 
         # Log the request details
@@ -102,7 +102,7 @@ def make_openai_completion(question):
     except Exception as e:
         # Log exceptions for failed calls
         with open("error_log.txt", "a") as error_log_file:
-            error_log_file.write(f"Question: {question[:100]}\nException: {str(e)}\n\n")
+            error_log_file.write(f"Question: {question[:100]}\nException: {e!s}\n\n")
         return None
 
 
@@ -131,14 +131,14 @@ for future in futures:
     else:
         failed_calls += 1
 
-print("Load test Summary:")
-print(f"Total Requests: {concurrent_calls}")
-print(f"Successful Calls: {successful_calls}")
-print(f"Failed Calls: {failed_calls}")
+sys.stdout.write("Load test Summary:" + "\n")
+sys.stdout.write(f"Total Requests: {concurrent_calls}" + "\n")
+sys.stdout.write(f"Successful Calls: {successful_calls}" + "\n")
+sys.stdout.write(f"Failed Calls: {failed_calls}" + "\n")
 
 # Display content of the logs
 with open("request_log.txt", "r") as log_file:
-    print("\nRequest Log:\n", log_file.read())
+    sys.stdout.write(" ".join(str(_output_value) for _output_value in ("\nRequest Log:\n", log_file.read())) + "\n")
 
 with open("error_log.txt", "r") as error_log_file:
-    print("\nError Log:\n", error_log_file.read())
+    sys.stdout.write(" ".join(str(_output_value) for _output_value in ("\nError Log:\n", error_log_file.read())) + "\n")

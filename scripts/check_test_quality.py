@@ -239,10 +239,10 @@ def _is_assertion_helper_call(call: ast.Call) -> bool:
 def iter_assertions(function: FunctionNode) -> Iterator[ast.stmt | ast.Call]:
     """Every node in the function that pins a behaviour, nested definitions included."""
     for node in ast.walk(function):
-        if isinstance(node, ast.Assert):
-            yield node
-        elif isinstance(node, ast.Call) and (
-            _is_pytest_assertion_call(node) or _is_assertion_helper_call(node)
+        if (
+            isinstance(node, ast.Assert)
+            or isinstance(node, ast.Call)
+            and (_is_pytest_assertion_call(node) or _is_assertion_helper_call(node))
         ):
             yield node
 
@@ -763,16 +763,16 @@ def scan_paths(paths: Sequence[Path]) -> tuple[Violation, ...]:
 def main(argv: Sequence[str]) -> int:
     paths: Final = tuple(a for a in argv if not a.startswith("-"))
     if not paths:
-        print("usage: check_test_quality.py <files-or-dirs>...", file=sys.stderr)
+        sys.stderr.write("usage: check_test_quality.py <files-or-dirs>..." + "\n")
         return 2
 
     targets: Final = tuple(collect_paths(paths))
     violations: Final = sorted(scan_paths(targets))
     for violation in violations:
-        print(violation.render())
+        sys.stdout.write(str(violation.render()) + "\n")
 
     if violations:
-        print(f"\n{len(violations)} violation(s).", file=sys.stderr)
+        sys.stderr.write(f"\n{len(violations)} violation(s)." + "\n")
         return 1
     return 0
 

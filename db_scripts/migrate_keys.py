@@ -2,8 +2,9 @@ import asyncio
 import csv
 import json
 import os
+import sys
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from prisma import Prisma
 
@@ -23,20 +24,15 @@ async def parse_csv_value(value: str, field_type: str) -> Any:
         return value.lower() == "true"
     elif field_type == "float":
         return float(value)
-    elif field_type == "int":
-        return int(value) if value.isdigit() else None
-    elif field_type == "bigint":
+    elif field_type == "int" or field_type == "bigint":
         return int(value) if value.isdigit() else None
     elif field_type == "datetime":
         try:
             return datetime.fromisoformat(value.replace("Z", "+00:00"))
-        except:
+        except ValueError:
             return None
     elif field_type == "json":
-        try:
-            return value if value else json.dumps({})
-        except:
-            return json.dumps({})
+        return value if value else json.dumps({})
     elif field_type == "string_array":
         # Handle string arrays like {default-models}
         if value.startswith("{") and value.endswith("}"):
@@ -150,9 +146,7 @@ async def migrate_verification_tokens():
                     )
 
                     if existing_token:
-                        print(
-                            f"Token {verification_token_data['token']} already exists, skipping..."
-                        )
+                        sys.stdout.write(f"Token {verification_token_data['token']} already exists, skipping..." + "\n")
                         continue
 
                     # Insert the record
@@ -161,23 +155,19 @@ async def migrate_verification_tokens():
                     )
 
                     processed_count += 1
-                    print(
-                        f"Successfully migrated token: {verification_token_data['token']}"
-                    )
+                    sys.stdout.write(f"Successfully migrated token: {verification_token_data['token']}" + "\n")
 
                 except Exception as e:
                     error_count += 1
-                    print(
-                        f"Error processing row with token {row.get('token', 'unknown')}: {str(e)}"
-                    )
+                    sys.stdout.write(f"Error processing row with token {row.get('token', 'unknown')}: {e!s}" + "\n")
                     continue
 
-            print(f"\nMigration completed!")
-            print(f"Successfully processed: {processed_count} records")
-            print(f"Errors encountered: {error_count} records")
+            sys.stdout.write("\nMigration completed!" + "\n")
+            sys.stdout.write(f"Successfully processed: {processed_count} records" + "\n")
+            sys.stdout.write(f"Errors encountered: {error_count} records" + "\n")
 
     except Exception as e:
-        print(f"Migration failed: {str(e)}")
+        sys.stdout.write(f"Migration failed: {e!s}" + "\n")
 
     finally:
         await prisma.disconnect()

@@ -5,6 +5,7 @@ When using Waypoint Proxy, you can use the same MCP tools across all your LLM pr
 """
 
 import os
+import sys
 
 import openai
 
@@ -12,7 +13,7 @@ client = openai.OpenAI(
     api_key=os.environ["WAYPOINT_MASTER_KEY"],
     base_url="http://localhost:4000",  # paste your litellm proxy base url here
 )
-print("Making API request to Responses API with MCP tools")
+sys.stdout.write("Making API request to Responses API with MCP tools" + "\n")
 
 response = client.responses.create(
     model="gpt-5",
@@ -36,4 +37,4 @@ response = client.responses.create(
 )
 
 for chunk in response:
-    print("response chunk: ", chunk)
+    sys.stdout.write(" ".join(str(_output_value) for _output_value in ("response chunk: ", chunk)) + "\n")

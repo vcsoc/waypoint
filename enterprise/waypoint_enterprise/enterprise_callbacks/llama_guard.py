@@ -15,7 +15,6 @@ sys.path.insert(
     0, os.path.abspath("../..")
 )  # Adds the parent directory to the system path
 import sys
-from typing import Literal, Optional
 
 from fastapi import HTTPException
 
@@ -28,7 +27,7 @@ from waypoint.types.utils import CallTypesLiteral, Choices, ModelResponse
 
 class _ENTERPRISE_LlamaGuard(CustomLogger):
     # Class variables or attributes
-    def __init__(self, model_name: Optional[str] = None):
+    def __init__(self, model_name: str | None = None):
         _model = model_name or waypoint.llamaguard_model_name
         if _model is None:
             raise ValueError("model_name not set for LlamaGuard")
@@ -43,7 +42,7 @@ class _ENTERPRISE_LlamaGuard(CustomLogger):
             except FileNotFoundError:
                 raise Exception(f"File not found. file_path={file_path}")
             except Exception as e:
-                raise Exception(f"An error occurred: {str(e)}, file_path={file_path}")
+                raise Exception(f"An error occurred: {e!s}, file_path={file_path}")
 
         self.unsafe_content_categories = data
 
@@ -55,7 +54,7 @@ class _ENTERPRISE_LlamaGuard(CustomLogger):
         try:
             verbose_proxy_logger.debug(print_statement)
             if waypoint.set_verbose:
-                print(print_statement)  # noqa
+                print(print_statement)  # noqa: T201  # Legacy set_verbose also emits to stdout
         except Exception:
             pass
 

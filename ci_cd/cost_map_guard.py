@@ -153,15 +153,17 @@ def main(argv: Sequence[str]) -> int:
     bot: Final = args.head_ref.startswith(BOT_BRANCH_PREFIX)
     changed: Final = changed_files(args.base, args.head)
     if changed is None:
-        print(f"cost map guard failed: git diff {args.base} {args.head} failed, so the changed files are unknown")
+        sys.stdout.write(
+            f"cost map guard failed: git diff {args.base} {args.head} failed, so the changed files are unknown" + "\n"
+        )
         return 1
     failures: Final = guard_failures(snapshot(args.base), snapshot(args.head), changed, bot)
     contract: Final = contract_for(bot, changed)
     if failures:
-        print(f"cost map guard failed ({contract}):")
-        print("\n".join(f"- {failure}" for failure in failures))
+        sys.stdout.write(f"cost map guard failed ({contract}):" + "\n")
+        sys.stdout.write(str("\n".join(f"- {failure}" for failure in failures)) + "\n")
         return 1
-    print(f"cost map guard passed ({contract})")
+    sys.stdout.write(f"cost map guard passed ({contract})" + "\n")
     return 0
 
 

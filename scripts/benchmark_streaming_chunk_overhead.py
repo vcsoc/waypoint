@@ -20,9 +20,10 @@ import json
 import logging
 import os
 import statistics
+import sys
 import time
+from collections.abc import Callable
 from dataclasses import asdict, dataclass
-from typing import Callable, List, Optional
 from unittest.mock import MagicMock
 
 # Silence litellm's "Provider List" warnings emitted by get_llm_provider
@@ -71,7 +72,7 @@ def _make_generic_chunk(
     text: str,
     is_finished: bool = False,
     finish_reason: str = "",
-    usage: Optional[dict] = None,
+    usage: dict | None = None,
 ) -> GChunk:
     return GChunk(
         text=text,
@@ -86,7 +87,7 @@ def _make_generic_chunk(
 def _make_converse_chunk(
     text: str = "",
     finish_reason: str = "",
-    usage: Optional[Usage] = None,
+    usage: Usage | None = None,
 ) -> ModelResponseStream:
     return ModelResponseStream(
         choices=[
@@ -107,8 +108,8 @@ def _make_converse_chunk(
 # ---------------------------------------------------------------------------
 
 
-def anthropic_chunks(n: int) -> List[GChunk]:
-    out: List[GChunk] = [_make_generic_chunk(f"tok{i} ") for i in range(n)]
+def anthropic_chunks(n: int) -> list[GChunk]:
+    out: list[GChunk] = [_make_generic_chunk(f"tok{i} ") for i in range(n)]
     out.append(
         _make_generic_chunk(
             "",
@@ -120,15 +121,13 @@ def anthropic_chunks(n: int) -> List[GChunk]:
     return out
 
 
-def bedrock_invoke_chunks(n: int) -> List[GChunk]:
+def bedrock_invoke_chunks(n: int) -> list[GChunk]:
     # Bedrock Invoke surfaces GChunk-shaped dicts, same shape as Anthropic.
     return anthropic_chunks(n)
 
 
-def bedrock_converse_chunks(n: int) -> List[ModelResponseStream]:
-    out: List[ModelResponseStream] = [
-        _make_converse_chunk(f"tok{i} ") for i in range(n)
-    ]
+def bedrock_converse_chunks(n: int) -> list[ModelResponseStream]:
+    out: list[ModelResponseStream] = [_make_converse_chunk(f"tok{i} ") for i in range(n)]
     out.append(
         _make_converse_chunk(
             text="",
@@ -368,11 +367,11 @@ def main() -> None:
         if m not in {"sync", "async"}:
             raise SystemExit(f"unknown mode {m!r}; choose from sync/async")
 
-    print(
-        f"\n=== label={args.label}  streams={args.streams}  chunks/stream={args.chunks}  "
-        f"warmup={args.warmup}  repeats={args.repeats} (min reported) ==="
+    sys.stdout.write(
+        f"\n=== label={args.label}  streams={args.streams}  chunks/stream={args.chunks}  warmup={args.warmup}  repeats={args.repeats} (min reported) ==="
+        + "\n"
     )
-    results: List[Result] = []
+    results: list[Result] = []
     for provider_key in providers:
         for mode in modes:
             r = run_case(
@@ -385,12 +384,12 @@ def main() -> None:
                 warmup=args.warmup,
             )
             results.append(r)
-            print(format_result(r))
+            sys.stdout.write(str(format_result(r)) + "\n")
 
     if args.json_out:
         with open(args.json_out, "w", encoding="utf-8") as f:
             json.dump([asdict(r) for r in results], f, indent=2)
-        print(f"\nWrote {len(results)} results to {args.json_out}")
+        sys.stdout.write(f"\nWrote {len(results)} results to {args.json_out}" + "\n")
 
 
 if __name__ == "__main__":

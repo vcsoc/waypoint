@@ -8,7 +8,7 @@
 ## This provides an LLM Guard Integration for content moderation on the proxy
 
 import asyncio
-from typing import Final, Optional
+from typing import Final
 
 import aiohttp
 from fastapi import HTTPException
@@ -26,7 +26,7 @@ class _ENTERPRISE_LLMGuard(CustomLogger):
     def __init__(
         self,
         mock_testing: bool = False,
-        mock_redacted_text: Optional[dict] = None,
+        mock_redacted_text: dict | None = None,
     ):
         self.mock_redacted_text = mock_redacted_text
         self.llm_guard_mode = waypoint.llm_guard_mode
@@ -42,7 +42,7 @@ class _ENTERPRISE_LLMGuard(CustomLogger):
         try:
             verbose_proxy_logger.debug(print_statement)
             if waypoint.set_verbose:
-                print(print_statement)  # noqa
+                print(print_statement)  # noqa: T201  # Legacy set_verbose also emits to stdout
         except Exception:
             pass
 
@@ -86,9 +86,7 @@ class _ENTERPRISE_LLMGuard(CustomLogger):
             return sanitized_prompt if isinstance(sanitized_prompt, str) else text
         except Exception as e:
             verbose_proxy_logger.exception(
-                "waypoint.enterprise.enterprise_hooks.llm_guard::moderation_check - Exception occurred - {}".format(
-                    str(e)
-                )
+                f"waypoint.enterprise.enterprise_hooks.llm_guard::moderation_check - Exception occurred - {e!s}"
             )
             raise e
 

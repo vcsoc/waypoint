@@ -302,16 +302,18 @@ def emit_counts(checker: Checker, counts: Counts, directory: Path, head_point: s
     counts are refused: a pass that produced nothing almost certainly crashed,
     and publishing it would poison every branch that fetches it."""
     if not counts:
-        print(
-            f"FAIL: {checker.name} produced no violations; refusing to publish empty base "
-            "counts because the pass almost certainly crashed or emitted nothing."
+        sys.stdout.write(
+            f"FAIL: {checker.name} produced no violations; refusing to publish empty base counts because the pass almost certainly crashed or emitted nothing."
+            + "\n"
         )
         raise SystemExit(1)
     name: Final = checker.artifact_name(head_point)
     directory.mkdir(parents=True, exist_ok=True)
     path: Final = directory / f"{name}.json"
     path.write_text(counts_payload(head_point, counts))
-    print(f"Emitted base counts for {head_point} as {name}.json ({sum(counts.values())} violations total)")
+    sys.stdout.write(
+        f"Emitted base counts for {head_point} as {name}.json ({sum(counts.values())} violations total)" + "\n"
+    )
     return path
 
 

@@ -54,5 +54,4 @@ class ENTERPRISE_OpenAI_Moderation(CustomLogger):
             raise HTTPException(
                 status_code=403, detail={"error": "Violated content safety policy"}
             )
-        pass
 _ENTERPRISE_OpenAI_Moderation = ENTERPRISE_OpenAI_Moderation

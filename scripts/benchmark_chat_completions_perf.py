@@ -29,7 +29,7 @@ import tempfile
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Final, Optional
+from typing import Any, Final
 
 import aiohttp
 from aiohttp import web
@@ -42,7 +42,7 @@ class RequestSample:
     success: bool
     latency_ms: float
     status_code: int
-    overhead_header_ms: Optional[float] = None
+    overhead_header_ms: float | None = None
     error: str = ""
 
 
@@ -55,9 +55,9 @@ class SummaryStats:
     p50_ms: float
     p95_ms: float
     p99_ms: float
-    overhead_header_mean_ms: Optional[float] = None
-    overhead_header_p50_ms: Optional[float] = None
-    overhead_header_p95_ms: Optional[float] = None
+    overhead_header_mean_ms: float | None = None
+    overhead_header_p50_ms: float | None = None
+    overhead_header_p95_ms: float | None = None
 
 
 class MockOpenAIProvider:
@@ -72,7 +72,7 @@ class MockOpenAIProvider:
         self.port = port
         self.first_token_delay_ms = first_token_delay_ms
         self.stream_content_chunks = stream_content_chunks
-        self.runner: Optional[web.AppRunner] = None
+        self.runner: web.AppRunner | None = None
 
     @property
     def base_url(self) -> str:
@@ -194,7 +194,7 @@ def summarize(samples: list[RequestSample], wall_time_s: float) -> SummaryStats:
     )
 
 
-def format_optional_ms(value: Optional[float]) -> str:
+def format_optional_ms(value: float | None) -> str:
     return "n/a" if value is None else f"{value:.2f}"
 
 
@@ -289,7 +289,7 @@ def stop_proxy_process(process: subprocess.Popen) -> None:
             pass
 
 
-def extract_overhead_header(headers: aiohttp.typedefs.LooseHeaders) -> Optional[float]:
+def extract_overhead_header(headers: aiohttp.typedefs.LooseHeaders) -> float | None:
     raw_value = headers.get("x-litellm-overhead-duration-ms")  # type: ignore[union-attr]
     if raw_value is None:
         return None
@@ -566,8 +566,8 @@ def stats_to_dict(stats: SummaryStats) -> dict[str, Any]:
 
 
 def _median_run(
-    runs: list[tuple[SummaryStats, SummaryStats, SummaryStats, Optional[SummaryStats]]],
-) -> tuple[SummaryStats, SummaryStats, SummaryStats, Optional[SummaryStats]]:
+    runs: list[tuple[SummaryStats, SummaryStats, SummaryStats, SummaryStats | None]],
+) -> tuple[SummaryStats, SummaryStats, SummaryStats, SummaryStats | None]:
     # Pick the run whose proxy non-stream p50 is the median across repeats.
     # Choosing a single representative run (rather than aggregating each metric
     # separately) keeps related metrics from the same execution context so
@@ -582,48 +582,50 @@ def print_summary(
     direct: SummaryStats,
     proxy: SummaryStats,
     stream: SummaryStats,
-    stream_full: Optional[SummaryStats],
+    stream_full: SummaryStats | None,
 ) -> None:
     client_overhead_p50 = proxy.p50_ms - direct.p50_ms
     client_overhead_p95 = proxy.p95_ms - direct.p95_ms
-    print("\n=== Benchmark summary ===")
-    print(f"Label: {label}")
-    print(f"Revision: {revision}")
-    print(f"Direct provider non-stream p50: {direct.p50_ms:.2f} ms")
-    print(f"Proxy non-stream p50: {proxy.p50_ms:.2f} ms")
-    print(f"Proxy non-stream p95: {proxy.p95_ms:.2f} ms")
-    print(f"Proxy non-stream RPS: {proxy.rps:.2f}")
-    print(f"Client-observed overhead p50: {client_overhead_p50:.2f} ms")
-    print(f"Client-observed overhead p95: {client_overhead_p95:.2f} ms")
-    print(
-        "x-litellm-overhead-duration-ms p50: "
-        f"{format_optional_ms(proxy.overhead_header_p50_ms)} ms"
+    sys.stdout.write("\n=== Benchmark summary ===" + "\n")
+    sys.stdout.write(f"Label: {label}" + "\n")
+    sys.stdout.write(f"Revision: {revision}" + "\n")
+    sys.stdout.write(f"Direct provider non-stream p50: {direct.p50_ms:.2f} ms" + "\n")
+    sys.stdout.write(f"Proxy non-stream p50: {proxy.p50_ms:.2f} ms" + "\n")
+    sys.stdout.write(f"Proxy non-stream p95: {proxy.p95_ms:.2f} ms" + "\n")
+    sys.stdout.write(f"Proxy non-stream RPS: {proxy.rps:.2f}" + "\n")
+    sys.stdout.write(f"Client-observed overhead p50: {client_overhead_p50:.2f} ms" + "\n")
+    sys.stdout.write(f"Client-observed overhead p95: {client_overhead_p95:.2f} ms" + "\n")
+    sys.stdout.write(
+        f"x-litellm-overhead-duration-ms p50: {format_optional_ms(proxy.overhead_header_p50_ms)} ms" + "\n"
     )
-    print(f"Streaming TTFT p50: {stream.p50_ms:.2f} ms")
-    print(f"Streaming TTFT p95: {stream.p95_ms:.2f} ms")
-    print(f"Streaming TTFT RPS: {stream.rps:.2f}")
+    sys.stdout.write(f"Streaming TTFT p50: {stream.p50_ms:.2f} ms" + "\n")
+    sys.stdout.write(f"Streaming TTFT p95: {stream.p95_ms:.2f} ms" + "\n")
+    sys.stdout.write(f"Streaming TTFT RPS: {stream.rps:.2f}" + "\n")
     if stream_full is not None:
-        print(f"Streaming full response p50: {stream_full.p50_ms:.2f} ms")
-        print(f"Streaming full response p95: {stream_full.p95_ms:.2f} ms")
-        print(f"Streaming full response RPS: {stream_full.rps:.2f}")
-    print("\nMarkdown row:")
-    print(
-        "| "
-        + " | ".join(
-            [
-                label,
-                revision,
-                f"{stream.p50_ms:.2f}",
-                f"{stream.p95_ms:.2f}",
-                f"{proxy.rps:.2f}",
-                f"{client_overhead_p50:.2f}",
-                f"{client_overhead_p95:.2f}",
-                format_optional_ms(proxy.overhead_header_p50_ms),
-                f"{stream_full.p50_ms:.2f}" if stream_full is not None else "n/a",
-                f"{stream_full.rps:.2f}" if stream_full is not None else "n/a",
-            ]
+        sys.stdout.write(f"Streaming full response p50: {stream_full.p50_ms:.2f} ms" + "\n")
+        sys.stdout.write(f"Streaming full response p95: {stream_full.p95_ms:.2f} ms" + "\n")
+        sys.stdout.write(f"Streaming full response RPS: {stream_full.rps:.2f}" + "\n")
+    sys.stdout.write("\nMarkdown row:" + "\n")
+    sys.stdout.write(
+        str(
+            "| "
+            + " | ".join(
+                [
+                    label,
+                    revision,
+                    f"{stream.p50_ms:.2f}",
+                    f"{stream.p95_ms:.2f}",
+                    f"{proxy.rps:.2f}",
+                    f"{client_overhead_p50:.2f}",
+                    f"{client_overhead_p95:.2f}",
+                    format_optional_ms(proxy.overhead_header_p50_ms),
+                    f"{stream_full.p50_ms:.2f}" if stream_full is not None else "n/a",
+                    f"{stream_full.rps:.2f}" if stream_full is not None else "n/a",
+                ]
+            )
+            + " |"
         )
-        + " |"
+        + "\n"
     )
 
 
@@ -723,8 +725,8 @@ async def async_main() -> None:
     }
     stream_payload = {**non_stream_payload, "stream": True}
 
-    provider: Optional[MockOpenAIProvider] = None
-    proxy_process: Optional[subprocess.Popen] = None
+    provider: MockOpenAIProvider | None = None
+    proxy_process: subprocess.Popen | None = None
     with tempfile.TemporaryDirectory(prefix="litellm-perf-") as tmp_dir_name:
         tmp_dir = Path(tmp_dir_name)
         proxy_log_path = tmp_dir / "proxy.log"
@@ -759,12 +761,12 @@ async def async_main() -> None:
                     SummaryStats,
                     SummaryStats,
                     SummaryStats,
-                    Optional[SummaryStats],
+                    SummaryStats | None,
                 ]
             ] = []
             for run_idx in range(max(1, args.repeats)):
                 if args.repeats > 1:
-                    print(f"\n--- Run {run_idx + 1}/{args.repeats} ---")
+                    sys.stdout.write(f"\n--- Run {run_idx + 1}/{args.repeats} ---" + "\n")
                 _direct = await run_non_streaming_benchmark(
                     url=f"{provider_base_url}/v1/chat/completions",
                     headers=provider_headers,
@@ -807,11 +809,12 @@ async def async_main() -> None:
                 )
                 runs.append((_direct, _proxy, _stream, _stream_full))
                 if args.repeats > 1:
-                    print(
-                        f"  run {run_idx + 1}: non-stream p50={_proxy.p50_ms:.2f}ms "
-                        f"rps={_proxy.rps:.2f} | TTFT p50={_stream.p50_ms:.2f}ms "
-                        f"full RPS="
-                        + (f"{_stream_full.rps:.2f}" if _stream_full else "n/a")
+                    sys.stdout.write(
+                        str(
+                            f"  run {run_idx + 1}: non-stream p50={_proxy.p50_ms:.2f}ms rps={_proxy.rps:.2f} | TTFT p50={_stream.p50_ms:.2f}ms full RPS="
+                            + (f"{_stream_full.rps:.2f}" if _stream_full else "n/a")
+                        )
+                        + "\n"
                     )
 
             direct, proxy, stream, stream_full = _median_run(runs)

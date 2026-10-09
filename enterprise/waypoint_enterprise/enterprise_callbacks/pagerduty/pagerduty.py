@@ -13,7 +13,6 @@ However, this is under the enterprise license
 import asyncio
 import os
 from datetime import datetime, timedelta, timezone
-from typing import List, Optional, Union
 
 from waypoint._logging import verbose_logger
 from waypoint.caching import DualCache
@@ -48,9 +47,7 @@ class PagerDutyAlerting(SlackAlerting):
     If threshold is crossed for either type, triggers a PagerDuty alert.
     """
 
-    def __init__(
-        self, alerting_args: Optional[Union[AlertingConfig, dict]] = None, **kwargs
-    ):
+    def __init__(self, alerting_args: AlertingConfig | dict | None = None, **kwargs):
         super().__init__()
         _api_key = os.getenv("PAGERDUTY_API_KEY")
         if not _api_key:
@@ -76,8 +73,8 @@ class PagerDutyAlerting(SlackAlerting):
         )
 
         # Separate storage for failures vs. hangs
-        self._failure_events: List[PagerDutyInternalEvent] = []
-        self._hanging_events: List[PagerDutyInternalEvent] = []
+        self._failure_events: list[PagerDutyInternalEvent] = []
+        self._hanging_events: list[PagerDutyInternalEvent] = []
 
     # ------------------ MAIN LOGIC ------------------ #
 
@@ -87,16 +84,14 @@ class PagerDutyAlerting(SlackAlerting):
         configured *failure* threshold is exceeded in the specified window.
         """
         now = datetime.now(timezone.utc)
-        standard_logging_payload: Optional[StandardLoggingPayload] = kwargs.get(
-            "standard_logging_object"
-        )
+        standard_logging_payload: StandardLoggingPayload | None = kwargs.get("standard_logging_object")
         if not standard_logging_payload:
             raise ValueError(
                 "standard_logging_object is required for PagerDutyAlerting"
             )
 
         # Extract error details
-        error_info: Optional[StandardLoggingPayloadErrorInformation] = (
+        error_info: StandardLoggingPayloadErrorInformation | None = (
             standard_logging_payload.get("error_information") or {}
         )
         _meta = standard_logging_payload.get("metadata") or {}
@@ -151,7 +146,7 @@ class PagerDutyAlerting(SlackAlerting):
         cache: DualCache,
         data: dict,
         call_type: CallTypesLiteral,
-    ) -> Optional[Union[Exception, str, dict]]:
+    ) -> Exception | str | dict | None:
         """
         Example of detecting hanging requests by waiting a given threshold.
         If the request didn't finish by then, we treat it as 'hanging'.
@@ -164,9 +159,7 @@ class PagerDutyAlerting(SlackAlerting):
         )
         return None
 
-    async def hanging_response_handler(
-        self, request_data: Optional[dict], user_api_key_dict: UserAPIKeyAuth
-    ):
+    async def hanging_response_handler(self, request_data: dict | None, user_api_key_dict: UserAPIKeyAuth):
         """
         Checks if request completed by the time 'hanging_threshold_seconds' elapses.
         If not, we classify it as a hanging request.
@@ -239,7 +232,7 @@ class PagerDutyAlerting(SlackAlerting):
 
     async def _send_alert_if_thresholds_crossed(
         self,
-        events: List[PagerDutyInternalEvent],
+        events: list[PagerDutyInternalEvent],
         window_seconds: int,
         threshold: int,
         alert_prefix: str,
@@ -277,8 +270,8 @@ class PagerDutyAlerting(SlackAlerting):
             events.clear()
 
     def _build_error_summaries(
-        self, events: List[PagerDutyInternalEvent], max_errors: int = 5
-    ) -> List[PagerDutyInternalEvent]:
+        self, events: list[PagerDutyInternalEvent], max_errors: int = 5
+    ) -> list[PagerDutyInternalEvent]:
         """
         Build short text summaries for the last `max_errors`.
         Example: "ValueError (code: 500, provider: openai)"

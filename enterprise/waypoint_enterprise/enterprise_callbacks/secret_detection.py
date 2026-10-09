@@ -40,9 +40,7 @@ GUARDRAIL_PROVIDER = "hide-secrets"
 
 # Per-invocation tally of redacted secrets by detect-secrets plugin type; None
 # means the guardrail did not run, so _process_response records nothing.
-_masked_entity_count: ContextVar[Optional[dict]] = ContextVar(
-    "hide_secrets_masked_entity_count", default=None
-)
+_masked_entity_count: ContextVar[dict | None] = ContextVar("hide_secrets_masked_entity_count", default=None)
 
 _custom_plugins_path = "file://" + os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "secrets_plugins"
@@ -537,7 +535,7 @@ class _ENTERPRISE_SecretDetection(CustomGuardrail):
     # path skips should_run_check and never sees data["prompt"]).
     use_native_lifecycle_hooks: ClassVar[bool] = True
 
-    def __init__(self, detect_secrets_config: Optional[dict] = None, **kwargs):
+    def __init__(self, detect_secrets_config: dict | None = None, **kwargs):
         self.user_defined_detect_secrets_config = detect_secrets_config
         super().__init__(**kwargs)
 
@@ -653,13 +651,13 @@ class _ENTERPRISE_SecretDetection(CustomGuardrail):
 
     def _process_response(
         self,
-        response: Optional[dict],
+        response: dict | None,
         request_data: dict,
-        start_time: Optional[float] = None,
-        end_time: Optional[float] = None,
-        duration: Optional[float] = None,
-        event_type: Optional[GuardrailEventHooks] = None,
-        original_inputs: Optional[dict] = None,
+        start_time: float | None = None,
+        end_time: float | None = None,
+        duration: float | None = None,
+        event_type: GuardrailEventHooks | None = None,
+        original_inputs: dict | None = None,
     ):
         """Record allow/mask plus the masked-entity tally for a completed run.
 
@@ -689,10 +687,10 @@ class _ENTERPRISE_SecretDetection(CustomGuardrail):
         self,
         e: Exception,
         request_data: dict,
-        start_time: Optional[float] = None,
-        end_time: Optional[float] = None,
-        duration: Optional[float] = None,
-        event_type: Optional[GuardrailEventHooks] = None,
+        start_time: float | None = None,
+        end_time: float | None = None,
+        duration: float | None = None,
+        event_type: GuardrailEventHooks | None = None,
     ):
         """Label the failed run with this guardrail's provider so error rows
         group with the successful ones in the monitor. Nameless legacy

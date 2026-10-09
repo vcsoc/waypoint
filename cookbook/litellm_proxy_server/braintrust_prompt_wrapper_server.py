@@ -15,7 +15,8 @@ Usage:
 
 import json
 import os
-from typing import Any, Dict, List, Optional
+import sys
+from typing import Any
 
 import httpx
 import uvicorn
@@ -29,7 +30,7 @@ app = FastAPI(
 )
 
 
-def transform_braintrust_message(message: Dict[str, Any]) -> Dict[str, str]:
+def transform_braintrust_message(message: dict[str, Any]) -> dict[str, str]:
     """
     Transform a Braintrust message to Waypoint format.
 
@@ -59,8 +60,8 @@ def transform_braintrust_message(message: Dict[str, Any]) -> Dict[str, str]:
 
 
 def transform_braintrust_response(
-    braintrust_response: Dict[str, Any],
-) -> Dict[str, Any]:
+    braintrust_response: dict[str, Any],
+) -> dict[str, Any]:
     """
     Transform Braintrust API response to Waypoint prompt management format.
 
@@ -113,7 +114,7 @@ def transform_braintrust_response(
 
     # Extract optional parameters
     params = options.get("params", {})
-    optional_params: Dict[str, Any] = {}
+    optional_params: dict[str, Any] = {}
 
     # Map common parameters
     param_mapping = {
@@ -164,9 +165,7 @@ def transform_braintrust_response(
 @app.get("/beta/litellm_prompt_management")
 async def get_prompt(
     prompt_id: str = Query(..., description="The Braintrust prompt ID to fetch"),
-    authorization: Optional[str] = Header(
-        None, description="Bearer token for Braintrust API"
-    ),
+    authorization: str | None = Header(None, description="Bearer token for Braintrust API"),
 ) -> JSONResponse:
     """
     Fetch a prompt from Braintrust and transform it to Waypoint format.
@@ -197,9 +196,9 @@ async def get_prompt(
         "Authorization": f"Bearer {braintrust_token}",
         "Accept": "application/json",
     }
-    print(f"headers: {headers}")
-    print(f"braintrust_url: {braintrust_url}")
-    print(f"braintrust_token: {braintrust_token}")
+    sys.stdout.write(f"headers: {headers}" + "\n")
+    sys.stdout.write(f"braintrust_url: {braintrust_url}" + "\n")
+    sys.stdout.write(f"braintrust_token: {braintrust_token}" + "\n")
 
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
@@ -214,24 +213,24 @@ async def get_prompt(
     except httpx.RequestError as e:
         raise HTTPException(
             status_code=502,
-            detail=f"Failed to connect to Braintrust API: {str(e)}",
+            detail=f"Failed to connect to Braintrust API: {e!s}",
         )
     except json.JSONDecodeError as e:
         raise HTTPException(
             status_code=502,
-            detail=f"Failed to parse Braintrust API response: {str(e)}",
+            detail=f"Failed to parse Braintrust API response: {e!s}",
         )
 
-    print(f"braintrust_data: {braintrust_data}")
+    sys.stdout.write(f"braintrust_data: {braintrust_data}" + "\n")
     # Transform the response
     try:
         transformed_data = transform_braintrust_response(braintrust_data)
-        print(f"transformed_data: {transformed_data}")
+        sys.stdout.write(f"transformed_data: {transformed_data}" + "\n")
         return JSONResponse(content=transformed_data)
     except Exception as e:
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to transform Braintrust response: {str(e)}",
+            detail=f"Failed to transform Braintrust response: {e!s}",
         )
 
 
@@ -260,10 +259,10 @@ def main():
     port = int(os.getenv("PORT", "8080"))
     host = os.getenv("HOST", "0.0.0.0")
 
-    print(f"🚀 Starting Braintrust Prompt Wrapper Server on {host}:{port}")
-    print(f"📚 API Documentation available at http://{host}:{port}/docs")
-    print(
-        f"🔑 Make sure to set BRAINTRUST_API_KEY environment variable or pass token in Authorization header"
+    sys.stdout.write(f"🚀 Starting Braintrust Prompt Wrapper Server on {host}:{port}" + "\n")
+    sys.stdout.write(f"📚 API Documentation available at http://{host}:{port}/docs" + "\n")
+    sys.stdout.write(
+        "🔑 Make sure to set BRAINTRUST_API_KEY environment variable or pass token in Authorization header" + "\n"
     )
 
     uvicorn.run(app, host=host, port=port)

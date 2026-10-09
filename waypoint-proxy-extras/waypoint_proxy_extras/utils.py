@@ -11,7 +11,7 @@ import time
 from collections.abc import Callable
 from dataclasses import dataclass, replace
 from pathlib import Path
-from typing import TYPE_CHECKING, Final, Optional, Protocol, Union
+from typing import TYPE_CHECKING, Final, Protocol
 from urllib.parse import unquote, urlsplit
 
 from waypoint_proxy_extras import prisma_toolchain
@@ -41,7 +41,7 @@ class LensCheckConnect(Protocol):
     ) -> "psycopg.Connection[tuple[object, ...]]": ...
 
 
-def str_to_bool(value: Optional[str]) -> bool:
+def str_to_bool(value: str | None) -> bool:
     if value is None:
         return False
     return value.lower() in ("true", "1", "t", "y", "yes")
@@ -162,7 +162,7 @@ def _without_sql_comments(statement: str) -> str:
     ).strip()
 
 
-def _without_spend_logs_pk_clauses(statement: str) -> Optional[str]:
+def _without_spend_logs_pk_clauses(statement: str) -> str | None:
     prefix_match = _SPEND_LOGS_ALTER_RE.match(statement)
     if not prefix_match:
         return statement
@@ -255,7 +255,7 @@ def _redact_credentials(text: str) -> str:
     return _secret_shape_redactor()(result)
 
 
-def _redacted_command(command: object) -> Union[str, tuple[str, ...], list[str]]:
+def _redacted_command(command: object) -> str | tuple[str, ...] | list[str]:
     if isinstance(command, tuple):
         return tuple(_redact_credentials(str(argument)) for argument in command)
     if isinstance(command, list):
@@ -443,7 +443,7 @@ class ProxyExtrasDBManager:
         return tuple(row) if row is not None else ()
 
     @staticmethod
-    def _failed_migration_logs(migration_name: str, started_at: str) -> Optional[str]:
+    def _failed_migration_logs(migration_name: str, started_at: str) -> str | None:
         row: Final = ProxyExtrasDBManager._read_migration_ledger(
             "SELECT logs FROM {} WHERE migration_name = %s AND started_at = %s::timestamptz "
             "AND finished_at IS NULL AND rolled_back_at IS NULL",
@@ -771,7 +771,7 @@ class ProxyExtrasDBManager:
         return row is not None
 
     @staticmethod
-    def _prisma_schema_param(url: str) -> Optional[str]:
+    def _prisma_schema_param(url: str) -> str | None:
         """The `schema` query param Prisma uses to pick its target schema,
         or None when the URL does not set one."""
         from urllib.parse import parse_qsl, urlparse
@@ -1682,5 +1682,4 @@ class ProxyExtrasDBManager:
                 time.sleep(random.randrange(5, 15))
             finally:
                 os.chdir(original_dir)
-                pass
         return False

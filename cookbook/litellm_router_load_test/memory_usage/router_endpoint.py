@@ -1,4 +1,5 @@
 import os
+import sys
 
 import uvicorn
 from dotenv import load_dotenv
@@ -54,12 +55,12 @@ async def read_root():
 async def router_acompletion():
     question = f"This is a test: {uuid.uuid4()}" * 100
     resp = await router.aembedding(model="text-embedding-ada-002", input=question)
-    print("embedding-resp", resp)
+    sys.stdout.write(" ".join(str(_output_value) for _output_value in ("embedding-resp", resp)) + "\n")
 
     response = await router.acompletion(
         model="gpt-3.5-turbo", messages=[{"role": "user", "content": question}]
     )
-    print("completion-resp", response)
+    sys.stdout.write(" ".join(str(_output_value) for _output_value in ("completion-resp", response)) + "\n")
     return response
 
 

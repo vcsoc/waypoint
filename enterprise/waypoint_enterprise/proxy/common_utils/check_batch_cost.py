@@ -6,7 +6,7 @@ from collections.abc import Sequence
 from dataclasses import replace as dataclasses_replace
 from datetime import datetime, timedelta, timezone
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Final, List, Literal, Optional, Protocol, Tuple, cast
+from typing import TYPE_CHECKING, Final, Literal, Optional, Protocol, cast
 
 from waypoint._logging import verbose_proxy_logger
 from waypoint._uuid import uuid
@@ -33,7 +33,7 @@ if TYPE_CHECKING:
 
 CHECK_BATCH_COST_USER_AGENT = "Waypoint Proxy/CheckBatchCost"
 
-PROVIDER_TERMINAL_BATCH_STATUSES: Final[Tuple[str, ...]] = (
+PROVIDER_TERMINAL_BATCH_STATUSES: Final[tuple[str, ...]] = (
     "completed",
     "complete",
     "failed",
@@ -41,7 +41,7 @@ PROVIDER_TERMINAL_BATCH_STATUSES: Final[Tuple[str, ...]] = (
     "cancelled",
 )
 
-TERMINAL_MANAGED_OBJECT_STATUSES: Final[Tuple[str, ...]] = (
+TERMINAL_MANAGED_OBJECT_STATUSES: Final[tuple[str, ...]] = (
     *PROVIDER_TERMINAL_BATCH_STATUSES,
     "stale_expired",
 )
@@ -149,7 +149,7 @@ class CheckBatchCost:
             return
         self.batch_processed_support_confirmed = True
 
-    async def _get_user_info(self, batch_id: str, user_id: Optional[str]) -> dict[str, str | None]:
+    async def _get_user_info(self, batch_id: str, user_id: str | None) -> dict[str, str | None]:
         """
         Look up user email and key alias by user_id for enriching the S3 callback metadata.
         Returns a dict with user_api_key_user_email and user_api_key_alias (both may be None).
@@ -446,7 +446,7 @@ class CheckBatchCost:
         return self.llm_router.get_deployment(model_id=model_id) is not None
 
     @staticmethod
-    def _is_output_file_gone_at_provider(error: Exception, output_file_id: Optional[str]) -> bool:
+    def _is_output_file_gone_at_provider(error: Exception, output_file_id: str | None) -> bool:
         """A 404 naming the output file means there is nothing to fetch on this or any
         later poll: providers like Vertex AI advertise an output path for every batch,
         including terminal ones that never wrote it. Any other failure may be
@@ -507,7 +507,7 @@ class CheckBatchCost:
         self,
         job: "_ManagedObjectRow",
         prom_logger: Optional["PrometheusLogger"],
-    ) -> Optional[Tuple[str, str]]:
+    ) -> tuple[str, str] | None:
         """
         Resolve (model_id, batch_id) for a managed-object row, where model_id is a router
         deployment id and batch_id is the raw provider batch id.
@@ -586,7 +586,7 @@ class CheckBatchCost:
         prom_logger: Optional["PrometheusLogger"],
         llm_provider: str,
         bare_model_name: str,
-    ) -> Optional[Tuple[str, str]]:
+    ) -> tuple[str, str] | None:
         deployment_id = self._get_deployment_id_for_bare_model(bare_model_name, llm_provider)
         if deployment_id is None:
             verbose_proxy_logger.info(
@@ -598,9 +598,7 @@ class CheckBatchCost:
 
         return deployment_id, job.unified_object_id
 
-    def _get_deployment_id_for_bare_model(
-        self, bare_model_name: str, llm_provider: str
-    ) -> Optional[str]:
+    def _get_deployment_id_for_bare_model(self, bare_model_name: str, llm_provider: str) -> str | None:
         model_group = self.llm_router.resolve_model_name_from_model_id(bare_model_name)
         deployment_id = (
             self._get_deployment_id_for_provider(model_group, llm_provider) if model_group else None
@@ -612,9 +610,7 @@ class CheckBatchCost:
             bare_model_name, llm_provider
         )
 
-    def _get_deployment_id_from_matching_deployments(
-        self, bare_model_name: str, llm_provider: str
-    ) -> Optional[str]:
+    def _get_deployment_id_from_matching_deployments(self, bare_model_name: str, llm_provider: str) -> str | None:
         from waypoint.waypoint_core_utils.get_llm_provider_logic import get_llm_provider
 
         for deployment in self.llm_router.get_model_list(model_name=None) or []:
@@ -651,9 +647,7 @@ class CheckBatchCost:
             or normalized_actual.endswith(f"/{normalized_bare}")
         )
 
-    def _get_deployment_id_for_provider(
-        self, model_group: str, llm_provider: str
-    ) -> Optional[str]:
+    def _get_deployment_id_for_provider(self, model_group: str, llm_provider: str) -> str | None:
         """
         Returns the first deployment id for `model_group` whose provider is `llm_provider`,
         skipping deployments from other providers that happen to share the model group name.
@@ -680,7 +674,7 @@ class CheckBatchCost:
         cls,
         job: "_ManagedObjectRow",
         deployment_info: "Deployment",
-    ) -> Optional[str]:
+    ) -> str | None:
         """
         Public model group name to encode as ``target_model_names`` on unified output file ids.
 
@@ -698,7 +692,7 @@ class CheckBatchCost:
         )
 
     @staticmethod
-    def _get_input_file_id(job: "_ManagedObjectRow") -> Optional[str]:
+    def _get_input_file_id(job: "_ManagedObjectRow") -> str | None:
         import json
 
         from waypoint.types.utils import LiteLLMBatch
@@ -724,7 +718,7 @@ class CheckBatchCost:
         model_id: str,
         batch_id: str,
         prom_logger: Optional["PrometheusLogger"],
-    ) -> Optional[Tuple[Optional[str], Optional[str]]]:
+    ) -> tuple[str | None, str | None] | None:
         """
         Fetch a completed batch's results, compute cost/usage, and emit the
         aretrieve_batch spend log. Returns (model_name, llm_provider) on
@@ -972,7 +966,7 @@ class CheckBatchCost:
             verbose_proxy_logger.error(f"CheckBatchCost: could not get Prometheus logger: {e}")
             prom_logger = None
 
-        processed_models: List[Tuple[Optional[str], Optional[str]]] = []
+        processed_models: list[tuple[str | None, str | None]] = []
 
         try:
             await self._cleanup_stale_managed_objects()

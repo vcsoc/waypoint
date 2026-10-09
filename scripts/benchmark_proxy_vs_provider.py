@@ -65,7 +65,7 @@ import sys
 import time
 from dataclasses import dataclass, field
 from statistics import mean, median, stdev
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import aiohttp
 from aiohttp import TCPConnector
@@ -88,12 +88,12 @@ class BenchmarkResults:
     total_requests: int = 0
     successful_requests: int = 0
     failed_requests: int = 0
-    latencies: List[float] = field(default_factory=list)
-    errors: List[str] = field(default_factory=list)
-    status_codes: Dict[int, int] = field(default_factory=dict)
+    latencies: list[float] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+    status_codes: dict[int, int] = field(default_factory=dict)
     total_time: float = 0.0
 
-    def calculate_stats(self) -> Dict[str, Any]:
+    def calculate_stats(self) -> dict[str, Any]:
         """Calculate statistics from the results"""
         if not self.latencies:
             return {
@@ -133,7 +133,7 @@ class BenchmarkResults:
         }
 
     @staticmethod
-    def _percentile(data: List[float], percentile: int) -> float:
+    def _percentile(data: list[float], percentile: int) -> float:
         """Calculate percentile"""
         sorted_data = sorted(data)
         index = int(len(sorted_data) * (percentile / 100))
@@ -145,8 +145,8 @@ class BenchmarkResults:
 async def make_request(
     session: aiohttp.ClientSession,
     url: str,
-    headers: Dict[str, str],
-    payload: Dict[str, Any],
+    headers: dict[str, str],
+    payload: dict[str, Any],
     timeout: aiohttp.ClientTimeout,
 ) -> RequestStats:
     """Make a single async request and return stats"""
@@ -206,8 +206,8 @@ async def make_request(
 
 async def warmup_endpoint(
     url: str,
-    headers: Dict[str, str],
-    payload: Dict[str, Any],
+    headers: dict[str, str],
+    payload: dict[str, Any],
     num_warmup: int = 5,
     timeout_seconds: int = 60,
 ) -> None:
@@ -235,8 +235,8 @@ async def make_request_with_semaphore(
     session: aiohttp.ClientSession,
     semaphore: asyncio.Semaphore,
     url: str,
-    headers: Dict[str, str],
-    payload: Dict[str, Any],
+    headers: dict[str, str],
+    payload: dict[str, Any],
     timeout: aiohttp.ClientTimeout,
 ) -> RequestStats:
     """Make a request with semaphore-based concurrency control"""
@@ -246,12 +246,12 @@ async def make_request_with_semaphore(
 
 async def benchmark_endpoint(
     url: str,
-    headers: Dict[str, str],
-    payload: Dict[str, Any],
+    headers: dict[str, str],
+    payload: dict[str, Any],
     num_requests: int = 1000,
     timeout_seconds: int = 60,
     warmup: bool = True,
-    max_concurrent: Optional[int] = None,
+    max_concurrent: int | None = None,
 ) -> BenchmarkResults:
     """Benchmark an endpoint with parallel requests
 
@@ -264,22 +264,18 @@ async def benchmark_endpoint(
         warmup: Whether to perform warm-up requests
         max_concurrent: Maximum concurrent requests (None = unlimited, all at once)
     """
-    print(f"\nStarting benchmark for {url}")
+    sys.stdout.write(f"\nStarting benchmark for {url}" + "\n")
 
     if warmup:
-        print(f"   Warming up with 5 requests...")
+        sys.stdout.write("   Warming up with 5 requests..." + "\n")
         await warmup_endpoint(
             url, headers, payload, num_warmup=5, timeout_seconds=timeout_seconds
         )
 
     if max_concurrent:
-        print(
-            f"   Making {num_requests} requests with max {max_concurrent} concurrent..."
-        )
+        sys.stdout.write(f"   Making {num_requests} requests with max {max_concurrent} concurrent..." + "\n")
     else:
-        print(
-            f"   Making {num_requests} requests in parallel (unlimited concurrency)..."
-        )
+        sys.stdout.write(f"   Making {num_requests} requests in parallel (unlimited concurrency)..." + "\n")
 
     results = BenchmarkResults(total_requests=num_requests)
     timeout = aiohttp.ClientTimeout(total=timeout_seconds)
@@ -347,42 +343,42 @@ def print_results(name: str, results: BenchmarkResults):
     """Print formatted benchmark results"""
     stats = results.calculate_stats()
 
-    print(f"\n{'='*60}")
-    print(f"Results for {name}")
-    print(f"{'='*60}")
-    print(f"Total Requests:        {stats['total_requests']}")
-    print(f"Successful Requests:   {stats['successful_requests']}")
-    print(f"Failed Requests:       {stats['failed_requests']}")
-    print(f"Success Rate:          {stats['success_rate']:.2f}%")
-    print(f"Error Rate:            {stats['error_rate']:.2f}%")
-    print(f"Total Time:            {stats['total_time']:.2f}s")
-    print(f"Requests/Second:       {stats['requests_per_second']:.2f}")
+    sys.stdout.write(f"\n{'=' * 60}" + "\n")
+    sys.stdout.write(f"Results for {name}" + "\n")
+    sys.stdout.write(f"{'=' * 60}" + "\n")
+    sys.stdout.write(f"Total Requests:        {stats['total_requests']}" + "\n")
+    sys.stdout.write(f"Successful Requests:   {stats['successful_requests']}" + "\n")
+    sys.stdout.write(f"Failed Requests:       {stats['failed_requests']}" + "\n")
+    sys.stdout.write(f"Success Rate:          {stats['success_rate']:.2f}%" + "\n")
+    sys.stdout.write(f"Error Rate:            {stats['error_rate']:.2f}%" + "\n")
+    sys.stdout.write(f"Total Time:            {stats['total_time']:.2f}s" + "\n")
+    sys.stdout.write(f"Requests/Second:       {stats['requests_per_second']:.2f}" + "\n")
 
     if "latency_stats" in stats:
         latency = stats["latency_stats"]
-        print(f"\nLatency Statistics (seconds):")
-        print(f"   Mean:               {latency['mean']:.4f}s")
-        print(f"   Median (p50):       {latency['median']:.4f}s")
-        print(f"   Min:                {latency['min']:.4f}s")
-        print(f"   Max:                {latency['max']:.4f}s")
-        print(f"   Std Dev:            {latency['std_dev']:.4f}s")
-        print(f"   p95:                {latency['p95']:.4f}s")
-        print(f"   p99:                {latency['p99']:.4f}s")
+        sys.stdout.write("\nLatency Statistics (seconds):" + "\n")
+        sys.stdout.write(f"   Mean:               {latency['mean']:.4f}s" + "\n")
+        sys.stdout.write(f"   Median (p50):       {latency['median']:.4f}s" + "\n")
+        sys.stdout.write(f"   Min:                {latency['min']:.4f}s" + "\n")
+        sys.stdout.write(f"   Max:                {latency['max']:.4f}s" + "\n")
+        sys.stdout.write(f"   Std Dev:            {latency['std_dev']:.4f}s" + "\n")
+        sys.stdout.write(f"   p95:                {latency['p95']:.4f}s" + "\n")
+        sys.stdout.write(f"   p99:                {latency['p99']:.4f}s" + "\n")
 
     if stats["status_codes"]:
-        print(f"\nStatus Codes:")
+        sys.stdout.write("\nStatus Codes:" + "\n")
         for code, count in sorted(stats["status_codes"].items()):
-            print(f"   {code}: {count}")
+            sys.stdout.write(f"   {code}: {count}" + "\n")
 
     if results.errors:
-        print(f"\nErrors (showing first 5 unique):")
+        sys.stdout.write("\nErrors (showing first 5 unique):" + "\n")
         unique_errors = list(set(results.errors))[:5]
         for error in unique_errors:
             count = results.errors.count(error)
-            print(f"   [{count}x] {error}")
+            sys.stdout.write(f"   [{count}x] {error}" + "\n")
 
 
-def aggregate_results(results_list: List[BenchmarkResults]) -> BenchmarkResults:
+def aggregate_results(results_list: list[BenchmarkResults]) -> BenchmarkResults:
     """Aggregate results from multiple runs"""
     if not results_list:
         return BenchmarkResults()
@@ -420,14 +416,14 @@ def aggregate_results(results_list: List[BenchmarkResults]) -> BenchmarkResults:
     return aggregated
 
 
-def print_run_variance(name: str, results_list: List[BenchmarkResults]):
+def print_run_variance(name: str, results_list: list[BenchmarkResults]):
     """Print variance statistics across multiple runs"""
     if len(results_list) <= 1:
         return
 
-    print(f"\n{'='*60}")
-    print(f"Run-to-Run Variance: {name}")
-    print(f"{'='*60}")
+    sys.stdout.write(f"\n{'=' * 60}" + "\n")
+    sys.stdout.write(f"Run-to-Run Variance: {name}" + "\n")
+    sys.stdout.write(f"{'=' * 60}" + "\n")
 
     # Collect mean latencies from each run
     mean_latencies = []
@@ -440,31 +436,40 @@ def print_run_variance(name: str, results_list: List[BenchmarkResults]):
         throughputs.append(stats["requests_per_second"])
 
     if mean_latencies:
-        print(f"\nMean Latency Variance:")
-        print(f"   Runs:           {len(mean_latencies)}")
-        print(f"   Mean:           {mean(mean_latencies):.4f}s")
-        print(f"   Min:            {min(mean_latencies):.4f}s")
-        print(f"   Max:            {max(mean_latencies):.4f}s")
-        print(
-            f"   Std Dev:        {stdev(mean_latencies):.4f}s"
-            if len(mean_latencies) > 1
-            else "   Std Dev:        N/A"
+        sys.stdout.write("\nMean Latency Variance:" + "\n")
+        sys.stdout.write(f"   Runs:           {len(mean_latencies)}" + "\n")
+        sys.stdout.write(f"   Mean:           {mean(mean_latencies):.4f}s" + "\n")
+        sys.stdout.write(f"   Min:            {min(mean_latencies):.4f}s" + "\n")
+        sys.stdout.write(f"   Max:            {max(mean_latencies):.4f}s" + "\n")
+        sys.stdout.write(
+            str(
+                f"   Std Dev:        {stdev(mean_latencies):.4f}s"
+                if len(mean_latencies) > 1
+                else "   Std Dev:        N/A"
+            )
+            + "\n"
         )
-        print(
-            f"   Coefficient of Variation: {(stdev(mean_latencies) / mean(mean_latencies) * 100):.2f}%"
-            if len(mean_latencies) > 1
-            else "   Coefficient of Variation: N/A"
+        sys.stdout.write(
+            str(
+                f"   Coefficient of Variation: {stdev(mean_latencies) / mean(mean_latencies) * 100:.2f}%"
+                if len(mean_latencies) > 1
+                else "   Coefficient of Variation: N/A"
+            )
+            + "\n"
         )
 
     if throughputs:
-        print(f"\nThroughput Variance:")
-        print(f"   Mean:           {mean(throughputs):.2f} req/s")
-        print(f"   Min:            {min(throughputs):.2f} req/s")
-        print(f"   Max:            {max(throughputs):.2f} req/s")
-        print(
-            f"   Std Dev:        {stdev(throughputs):.2f} req/s"
-            if len(throughputs) > 1
-            else "   Std Dev:        N/A"
+        sys.stdout.write("\nThroughput Variance:" + "\n")
+        sys.stdout.write(f"   Mean:           {mean(throughputs):.2f} req/s" + "\n")
+        sys.stdout.write(f"   Min:            {min(throughputs):.2f} req/s" + "\n")
+        sys.stdout.write(f"   Max:            {max(throughputs):.2f} req/s" + "\n")
+        sys.stdout.write(
+            str(
+                f"   Std Dev:        {stdev(throughputs):.2f} req/s"
+                if len(throughputs) > 1
+                else "   Std Dev:        N/A"
+            )
+            + "\n"
         )
 
 
@@ -475,27 +480,27 @@ def compare_results(
     proxy_stats = proxy_results.calculate_stats()
     provider_stats = provider_results.calculate_stats()
 
-    print(f"\n{'='*60}")
-    print(f"Comparison: Waypoint Proxy vs Direct Provider")
-    print(f"{'='*60}")
+    sys.stdout.write(f"\n{'=' * 60}" + "\n")
+    sys.stdout.write("Comparison: Waypoint Proxy vs Direct Provider" + "\n")
+    sys.stdout.write(f"{'=' * 60}" + "\n")
 
     # Success Rate Comparison
-    print(f"\nSuccess Rate:")
-    print(f"   Proxy:   {proxy_stats['success_rate']:.2f}%")
-    print(f"   Provider: {provider_stats['success_rate']:.2f}%")
+    sys.stdout.write("\nSuccess Rate:" + "\n")
+    sys.stdout.write(f"   Proxy:   {proxy_stats['success_rate']:.2f}%" + "\n")
+    sys.stdout.write(f"   Provider: {provider_stats['success_rate']:.2f}%" + "\n")
     diff = proxy_stats["success_rate"] - provider_stats["success_rate"]
-    print(f"   Difference: {diff:+.2f}%")
+    sys.stdout.write(f"   Difference: {diff:+.2f}%" + "\n")
 
     # Throughput Comparison
-    print(f"\nThroughput (requests/second):")
-    print(f"   Proxy:   {proxy_stats['requests_per_second']:.2f}")
-    print(f"   Provider: {provider_stats['requests_per_second']:.2f}")
+    sys.stdout.write("\nThroughput (requests/second):" + "\n")
+    sys.stdout.write(f"   Proxy:   {proxy_stats['requests_per_second']:.2f}" + "\n")
+    sys.stdout.write(f"   Provider: {provider_stats['requests_per_second']:.2f}" + "\n")
     diff = proxy_stats["requests_per_second"] - provider_stats["requests_per_second"]
-    print(f"   Difference: {diff:+.2f} req/s")
+    sys.stdout.write(f"   Difference: {diff:+.2f} req/s" + "\n")
 
     # Latency Comparison
     if "latency_stats" in proxy_stats and "latency_stats" in provider_stats:
-        print(f"\nLatency Comparison (seconds):")
+        sys.stdout.write("\nLatency Comparison (seconds):" + "\n")
         proxy_latency = proxy_stats["latency_stats"]
         provider_latency = provider_stats["latency_stats"]
 
@@ -505,21 +510,22 @@ def compare_results(
             provider_val = provider_latency[metric]
             diff = proxy_val - provider_val
             diff_pct = (diff / provider_val * 100) if provider_val > 0 else 0
-            print(
+            sys.stdout.write(
                 f"   {metric.upper():8s}: Proxy={proxy_val:.4f}s, Provider={provider_val:.4f}s, Diff={diff:+.4f}s ({diff_pct:+.2f}%)"
+                + "\n"
             )
 
     # Total Time Comparison
-    print(f"\nTotal Time:")
-    print(f"   Proxy:   {proxy_stats['total_time']:.2f}s")
-    print(f"   Provider: {provider_stats['total_time']:.2f}s")
+    sys.stdout.write("\nTotal Time:" + "\n")
+    sys.stdout.write(f"   Proxy:   {proxy_stats['total_time']:.2f}s" + "\n")
+    sys.stdout.write(f"   Provider: {provider_stats['total_time']:.2f}s" + "\n")
     diff = proxy_stats["total_time"] - provider_stats["total_time"]
     diff_pct = (
         (diff / provider_stats["total_time"] * 100)
         if provider_stats["total_time"] > 0
         else 0
     )
-    print(f"   Difference: {diff:+.2f}s ({diff_pct:+.2f}%)")
+    sys.stdout.write(f"   Difference: {diff:+.2f}s ({diff_pct:+.2f}%)" + "\n")
 
 
 async def main():
@@ -610,17 +616,13 @@ Examples:
 
     # Validate required environment variables
     if not LITELLM_PROXY_URL:
-        print("Error: WAYPOINT_PROXY_URL environment variable is required")
-        print(
-            "   Example: export WAYPOINT_PROXY_URL='https://your-proxy.com/chat/completions'"
-        )
+        sys.stdout.write("Error: WAYPOINT_PROXY_URL environment variable is required" + "\n")
+        sys.stdout.write("   Example: export WAYPOINT_PROXY_URL='https://your-proxy.com/chat/completions'" + "\n")
         sys.exit(1)
 
     if not PROVIDER_URL:
-        print("Error: PROVIDER_URL environment variable is required")
-        print(
-            "   Example: export PROVIDER_URL='https://your-provider.com/v1/chat/completions'"
-        )
+        sys.stdout.write("Error: PROVIDER_URL environment variable is required" + "\n")
+        sys.stdout.write("   Example: export PROVIDER_URL='https://your-provider.com/v1/chat/completions'" + "\n")
         sys.exit(1)
 
     # Headers for Waypoint proxy
@@ -630,8 +632,8 @@ Examples:
     if LITELLM_PROXY_API_KEY:
         proxy_headers["Authorization"] = f"Bearer {LITELLM_PROXY_API_KEY}"
     else:
-        print(
-            "Warning: WAYPOINT_PROXY_API_KEY not set, requests may fail if authentication is required"
+        sys.stdout.write(
+            "Warning: WAYPOINT_PROXY_API_KEY not set, requests may fail if authentication is required" + "\n"
         )
 
     # Headers for direct provider
@@ -641,9 +643,7 @@ Examples:
     if PROVIDER_API_KEY:
         provider_headers["Authorization"] = f"Bearer {PROVIDER_API_KEY}"
     else:
-        print(
-            "Warning: PROVIDER_API_KEY not set, requests may fail if authentication is required"
-        )
+        sys.stdout.write("Warning: PROVIDER_API_KEY not set, requests may fail if authentication is required" + "\n")
 
     # Payload (same for both)
     payload = {
@@ -660,41 +660,37 @@ Examples:
     num_requests = args.requests
     timeout_seconds = args.timeout
 
-    print("=" * 60)
-    print("Waypoint Proxy vs Provider Benchmark")
-    print("=" * 60)
-    print(f"Configuration (from environment variables):")
-    print(f"  Proxy URL:    {LITELLM_PROXY_URL}")
-    print(f"  Provider URL: {PROVIDER_URL}")
-    print(
-        f"  Proxy API Key: {'Set' if LITELLM_PROXY_API_KEY else 'Not set (may cause auth errors)'}"
+    sys.stdout.write(str("=" * 60) + "\n")
+    sys.stdout.write("Waypoint Proxy vs Provider Benchmark" + "\n")
+    sys.stdout.write(str("=" * 60) + "\n")
+    sys.stdout.write("Configuration (from environment variables):" + "\n")
+    sys.stdout.write(f"  Proxy URL:    {LITELLM_PROXY_URL}" + "\n")
+    sys.stdout.write(f"  Provider URL: {PROVIDER_URL}" + "\n")
+    sys.stdout.write(
+        f"  Proxy API Key: {('Set' if LITELLM_PROXY_API_KEY else 'Not set (may cause auth errors)')}" + "\n"
     )
-    print(
-        f"  Provider API Key: {'Set' if PROVIDER_API_KEY else 'Not set (may cause auth errors)'}"
+    sys.stdout.write(f"  Provider API Key: {('Set' if PROVIDER_API_KEY else 'Not set (may cause auth errors)')}" + "\n")
+    sys.stdout.write(f"  Requests:     {num_requests}" + "\n")
+    sys.stdout.write(f"  Runs:         {args.runs}" + "\n")
+    sys.stdout.write(
+        f"  Max Concurrent: {(args.max_concurrent if args.max_concurrent else 'Unlimited (all at once)')}" + "\n"
     )
-    print(f"  Requests:     {num_requests}")
-    print(f"  Runs:         {args.runs}")
-    print(
-        f"  Max Concurrent: {args.max_concurrent if args.max_concurrent else 'Unlimited (all at once)'}"
-    )
-    print(f"  Timeout:      {timeout_seconds}s")
-    print(
-        f"  Warmup:       {'Enabled' if not args.no_warmup else 'Disabled (not recommended)'}"
-    )
-    print(
-        f"  Mode:         {'Parallel (may affect results)' if args.parallel else 'Sequential (recommended)'}"
+    sys.stdout.write(f"  Timeout:      {timeout_seconds}s" + "\n")
+    sys.stdout.write(f"  Warmup:       {('Enabled' if not args.no_warmup else 'Disabled (not recommended)')}" + "\n")
+    sys.stdout.write(
+        f"  Mode:         {('Parallel (may affect results)' if args.parallel else 'Sequential (recommended)')}" + "\n"
     )
 
     if not args.max_concurrent:
-        print(f"\nTip: Use --max-concurrent 100 for more realistic load testing")
-        print(f"   (prevents overwhelming the server with all requests at once)")
+        sys.stdout.write("\nTip: Use --max-concurrent 100 for more realistic load testing" + "\n")
+        sys.stdout.write("   (prevents overwhelming the server with all requests at once)" + "\n")
 
     if args.parallel:
-        print(f"\nWARNING: Running benchmarks in parallel may affect results due to:")
-        print(f"   - Shared network bandwidth")
-        print(f"   - Provider endpoint receiving double load (via proxy + direct)")
-        print(f"   - Potential rate limiting issues")
-        print(f"   - Resource contention")
+        sys.stdout.write("\nWARNING: Running benchmarks in parallel may affect results due to:" + "\n")
+        sys.stdout.write("   - Shared network bandwidth" + "\n")
+        sys.stdout.write("   - Provider endpoint receiving double load (via proxy + direct)" + "\n")
+        sys.stdout.write("   - Potential rate limiting issues" + "\n")
+        sys.stdout.write("   - Resource contention" + "\n")
 
     # Run benchmarks multiple times if requested
     all_proxy_results = []
@@ -703,23 +699,23 @@ Examples:
     warmup_enabled = not args.no_warmup
 
     if args.runs > 1:
-        print(f"\nRunning {args.runs} benchmark runs for statistical accuracy...")
-        print(f"   Results will be averaged across all runs.\n")
+        sys.stdout.write(f"\nRunning {args.runs} benchmark runs for statistical accuracy..." + "\n")
+        sys.stdout.write("   Results will be averaged across all runs.\n" + "\n")
 
     overall_start_time = time.perf_counter()
 
     # Initialize to satisfy type checker (will always be set in loop)
-    proxy_results: Optional[BenchmarkResults] = None
-    provider_results: Optional[BenchmarkResults] = None
+    proxy_results: BenchmarkResults | None = None
+    provider_results: BenchmarkResults | None = None
 
     for run_num in range(1, args.runs + 1):
         if args.runs > 1:
-            print(f"\n{'='*60}")
-            print(f"Run {run_num}/{args.runs}")
-            print(f"{'='*60}")
+            sys.stdout.write(f"\n{'=' * 60}" + "\n")
+            sys.stdout.write(f"Run {run_num}/{args.runs}" + "\n")
+            sys.stdout.write(f"{'=' * 60}" + "\n")
 
         if args.parallel:
-            print(f"\nRunning both benchmarks in parallel...")
+            sys.stdout.write("\nRunning both benchmarks in parallel..." + "\n")
             proxy_results, provider_results = await asyncio.gather(
                 benchmark_endpoint(
                     LITELLM_PROXY_URL,
@@ -741,9 +737,9 @@ Examples:
                 ),
             )
         else:
-            print(f"\nRunning benchmarks sequentially (proxy first, then provider)...")
+            sys.stdout.write("\nRunning benchmarks sequentially (proxy first, then provider)..." + "\n")
             if run_num == 1:
-                print(f"   This ensures accurate results without interference.\n")
+                sys.stdout.write("   This ensures accurate results without interference.\n" + "\n")
 
             proxy_results = await benchmark_endpoint(
                 LITELLM_PROXY_URL,
@@ -756,7 +752,7 @@ Examples:
             )
 
             if run_num < args.runs or args.runs == 1:
-                print(f"\nWaiting 3 seconds before starting provider benchmark...")
+                sys.stdout.write("\nWaiting 3 seconds before starting provider benchmark..." + "\n")
                 await asyncio.sleep(3)  # Longer pause to ensure clean separation
 
             provider_results = await benchmark_endpoint(
@@ -774,24 +770,24 @@ Examples:
 
         # Brief pause between runs
         if run_num < args.runs:
-            print(f"\nWaiting 5 seconds before next run...")
+            sys.stdout.write("\nWaiting 5 seconds before next run..." + "\n")
             await asyncio.sleep(5)
 
     overall_benchmark_time = time.perf_counter() - overall_start_time
-    print(f"\nAll benchmark runs completed in {overall_benchmark_time:.2f}s")
+    sys.stdout.write(f"\nAll benchmark runs completed in {overall_benchmark_time:.2f}s" + "\n")
 
     # Aggregate results across multiple runs
     if args.runs > 1:
         final_proxy_results = aggregate_results(all_proxy_results)
         final_provider_results = aggregate_results(all_provider_results)
-        print(f"\nAggregated results across {args.runs} runs:")
+        sys.stdout.write(f"\nAggregated results across {args.runs} runs:" + "\n")
     else:
         # Use results from single run
         if proxy_results is None or provider_results is None:
             raise RuntimeError("Benchmark results not initialized")
         final_proxy_results = proxy_results
         final_provider_results = provider_results
-        print(f"\nResults:")
+        sys.stdout.write("\nResults:" + "\n")
 
     # Print individual results
     print_results("Waypoint Proxy", final_proxy_results)
@@ -805,19 +801,19 @@ Examples:
         print_run_variance("Waypoint Proxy", all_proxy_results)
         print_run_variance("Direct Provider", all_provider_results)
 
-    print(f"\n{'='*60}")
-    print("Benchmark complete!")
-    print(f"{'='*60}\n")
+    sys.stdout.write(f"\n{'=' * 60}" + "\n")
+    sys.stdout.write("Benchmark complete!" + "\n")
+    sys.stdout.write(f"{'=' * 60}\n" + "\n")
 
 
 if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print("\n\nBenchmark interrupted by user")
+        sys.stdout.write("\n\nBenchmark interrupted by user" + "\n")
         sys.exit(1)
     except Exception as e:
-        print(f"\n\nError running benchmark: {e}")
+        sys.stdout.write(f"\n\nError running benchmark: {e}" + "\n")
         import traceback
 
         traceback.print_exc()

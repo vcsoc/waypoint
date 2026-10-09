@@ -1,4 +1,3 @@
-from typing import List, Optional
 
 import waypoint
 from waypoint._logging import verbose_logger
@@ -54,12 +53,12 @@ class EnterpriseCallbackControls:
                             return True
                 return False
             except Exception as e:
-                verbose_logger.debug(
-                    f"Error checking disabled callbacks header: {str(e)}"
-                )
+                verbose_logger.debug(f"Error checking disabled callbacks header: {e!s}")
                 return False
     @staticmethod
-    def get_disabled_callbacks(litellm_params: dict, standard_callback_dynamic_params: StandardCallbackDynamicParams) -> Optional[List[str]]:
+    def get_disabled_callbacks(
+        litellm_params: dict, standard_callback_dynamic_params: StandardCallbackDynamicParams
+    ) -> list[str] | None:
         """
         Get the disabled callbacks from the standard callback dynamic params.
         """

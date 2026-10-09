@@ -1,4 +1,3 @@
-from typing import Optional, Union
 
 from waypoint.secret_managers.main import str_to_bool
 
@@ -20,8 +19,8 @@ def should_block_robots():
         premium_user,
     )
 
-    _block_robots: Union[bool, str] = general_settings.get("block_robots", False)
-    block_robots: Optional[bool] = None
+    _block_robots: bool | str = general_settings.get("block_robots", False)
+    block_robots: bool | None = None
     if isinstance(_block_robots, bool):
         block_robots = _block_robots
     elif isinstance(_block_robots, str):

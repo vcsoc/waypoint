@@ -155,19 +155,21 @@ def cmd_check(base: str) -> None:
     base_point: Final = resolve_base_point(base)
     breaches: Final = evaluate(count_by_rule(head), base_counts_cached(checker_identity(), base_point, base_counts))
     if not breaches:
-        print(f"OK: no TQ rule grew past its merge-base count (base {base})")
+        sys.stdout.write(f"OK: no TQ rule grew past its merge-base count (base {base})" + "\n")
         return
     diff: Final = _run(["git", "diff", base_point, "--unified=0", "--no-color", "--", TARGET])
     new: Final = introduced(head, parse_changed_lines(diff))
-    print(f"FAIL: TQ-rule totals grew past their merge-base count (base {base}):")
+    sys.stdout.write(f"FAIL: TQ-rule totals grew past their merge-base count (base {base}):" + "\n")
     for breach in breaches:
-        print(f"  {breach.rule}: total {breach.total} over ceiling {breach.ceiling} (this change added {breach.added})")
+        sys.stdout.write(
+            f"  {breach.rule}: total {breach.total} over ceiling {breach.ceiling} (this change added {breach.added})"
+            + "\n"
+        )
         for violation in sorted(v for v in new if v.code == breach.rule):
-            print(f"    {violation.file}:{violation.line}")
-    print(
-        "Fix the new violations, or give each one a reason (`# test-quality-ok: <reason>`), or remove an "
-        "equal number elsewhere; the ceiling is the merge-base count. Run "
-        "`python scripts/check_test_quality.py tests/` to see every finding."
+            sys.stdout.write(f"    {violation.file}:{violation.line}" + "\n")
+    sys.stdout.write(
+        "Fix the new violations, or give each one a reason (`# test-quality-ok: <reason>`), or remove an equal number elsewhere; the ceiling is the merge-base count. Run `python scripts/check_test_quality.py tests/` to see every finding."
+        + "\n"
     )
     raise SystemExit(1)
 

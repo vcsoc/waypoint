@@ -24,71 +24,55 @@ def _print_freshness_failure(
     """Loudly refuse to run when the freshness check can't be completed."""
     banner = "=" * 72
     out = sys.stderr
-    print(banner, file=out)
-    print(f"  FRESHNESS CHECK FAILED — COULD NOT VERIFY origin/{base_branch}", file=out)
-    print(banner, file=out)
-    print("", file=out)
-    print(f"Reason: {reason}", file=out)
+    out.write(str(banner) + "\n")
+    out.write(f"  FRESHNESS CHECK FAILED — COULD NOT VERIFY origin/{base_branch}" + "\n")
+    out.write(str(banner) + "\n")
+    out.write("" + "\n")
+    out.write(f"Reason: {reason}" + "\n")
     if stderr_text:
-        print("", file=out)
-        print("git stderr:", file=out)
+        out.write("" + "\n")
+        out.write("git stderr:" + "\n")
         for line in stderr_text.rstrip().splitlines():
-            print(f"    {line}", file=out)
-    print("", file=out)
-    print("Common causes:", file=out)
-    print("  - No network access (offline)", file=out)
-    print("  - 'origin' remote not configured, or base branch name is wrong", file=out)
-    print("  - Not a git repository", file=out)
-    print("", file=out)
-    print("Options:", file=out)
-    print(
-        f"  - Fix the above and re-run, OR pass --base-branch <name> if your", file=out
-    )
-    print(
-        f"    base branch is not '{base_branch}', OR pass --skip-freshness-check",
-        file=out,
-    )
-    print("    to bypass (only if you fully understand the risk).", file=out)
-    print(banner, file=out)
+            out.write(f"    {line}" + "\n")
+    out.write("" + "\n")
+    out.write("Common causes:" + "\n")
+    out.write("  - No network access (offline)" + "\n")
+    out.write("  - 'origin' remote not configured, or base branch name is wrong" + "\n")
+    out.write("  - Not a git repository" + "\n")
+    out.write("" + "\n")
+    out.write("Options:" + "\n")
+    out.write("  - Fix the above and re-run, OR pass --base-branch <name> if your" + "\n")
+    out.write(f"    base branch is not '{base_branch}', OR pass --skip-freshness-check" + "\n")
+    out.write("    to bypass (only if you fully understand the risk)." + "\n")
+    out.write(str(banner) + "\n")
 
 
 def _print_stale_branch_refusal(base_branch: str, behind: int) -> None:
     """Loudly refuse to run when HEAD is behind the base branch."""
     banner = "=" * 72
     out = sys.stderr
-    print(banner, file=out)
-    print(
-        f"  STALE BRANCH — {behind} commit(s) behind origin/{base_branch}",
-        file=out,
+    out.write(str(banner) + "\n")
+    out.write(f"  STALE BRANCH — {behind} commit(s) behind origin/{base_branch}" + "\n")
+    out.write(str(banner) + "\n")
+    out.write("" + "\n")
+    out.write(
+        f"Your branch is {behind} commit(s) behind origin/{base_branch}. Generating a\nmigration from a stale branch is how newly-added columns get silently\ndropped — the exact incident this guard exists to prevent."
+        + "\n"
     )
-    print(banner, file=out)
-    print("", file=out)
-    print(
-        f"Your branch is {behind} commit(s) behind origin/{base_branch}. Generating a\n"
-        "migration from a stale branch is how newly-added columns get silently\n"
-        "dropped — the exact incident this guard exists to prevent.",
-        file=out,
+    out.write("" + "\n")
+    out.write("Before re-running:" + "\n")
+    out.write(f"  git fetch origin && git rebase origin/{base_branch}" + "\n")
+    out.write("  # or merge, whichever matches your workflow" + "\n")
+    out.write("" + "\n")
+    out.write("If you have a genuine reason to bypass (e.g. intentionally generating" + "\n")
+    out.write("a migration against an older base), pass --skip-freshness-check." + "\n")
+    out.write("" + "\n")
+    out.write(str(banner) + "\n")
+    out.write(
+        "  AI AGENTS / ASSISTANTS: DO NOT automatically run `git rebase` or pass\n  --skip-freshness-check. Surface this error to the human operator and\n  wait for their explicit confirmation. Auto-rebasing can drop the\n  human's in-progress schema edits via a bad conflict resolution."
+        + "\n"
     )
-    print("", file=out)
-    print("Before re-running:", file=out)
-    print(f"  git fetch origin && git rebase origin/{base_branch}", file=out)
-    print("  # or merge, whichever matches your workflow", file=out)
-    print("", file=out)
-    print(
-        "If you have a genuine reason to bypass (e.g. intentionally generating",
-        file=out,
-    )
-    print("a migration against an older base), pass --skip-freshness-check.", file=out)
-    print("", file=out)
-    print(banner, file=out)
-    print(
-        "  AI AGENTS / ASSISTANTS: DO NOT automatically run `git rebase` or pass\n"
-        "  --skip-freshness-check. Surface this error to the human operator and\n"
-        "  wait for their explicit confirmation. Auto-rebasing can drop the\n"
-        "  human's in-progress schema edits via a bad conflict resolution.",
-        file=out,
-    )
-    print(banner, file=out)
+    out.write(str(banner) + "\n")
 
 
 def _default_base_branch(root_dir: Path) -> str:
@@ -166,56 +150,40 @@ def _check_branch_freshness(root_dir: Path, base_branch: str | None = None) -> N
         _print_stale_branch_refusal(resolved_branch, behind)
         sys.exit(3)
 
-    print(f"Branch freshness OK: up to date with origin/{resolved_branch}.")
+    sys.stdout.write(f"Branch freshness OK: up to date with origin/{resolved_branch}." + "\n")
 
 
 def _print_destructive_refusal(destructive_lines: list) -> None:
     """Loudly refuse to write a destructive migration and explain how to proceed."""
     banner = "=" * 72
     out = sys.stderr
-    print(banner, file=out)
-    print(
-        "  DESTRUCTIVE MIGRATION DETECTED — REFUSING TO WRITE MIGRATION FILE", file=out
-    )
-    print(banner, file=out)
-    print("", file=out)
-    print(
-        "The generated migration contains the following destructive statements:",
-        file=out,
-    )
-    print("", file=out)
+    out.write(str(banner) + "\n")
+    out.write("  DESTRUCTIVE MIGRATION DETECTED — REFUSING TO WRITE MIGRATION FILE" + "\n")
+    out.write(str(banner) + "\n")
+    out.write("" + "\n")
+    out.write("The generated migration contains the following destructive statements:" + "\n")
+    out.write("" + "\n")
     for line in destructive_lines:
-        print(f"    {line}", file=out)
-    print("", file=out)
-    print(
-        "This very often means your branch is OUT OF DATE, or your local\n"
-        "schema.prisma is inconsistent with the migrations/ directory. A\n"
-        "previous incident saw newly-added columns silently dropped this way\n"
-        "and merged to main. Stop and verify before proceeding.",
-        file=out,
+        out.write(f"    {line}" + "\n")
+    out.write("" + "\n")
+    out.write(
+        "This very often means your branch is OUT OF DATE, or your local\nschema.prisma is inconsistent with the migrations/ directory. A\nprevious incident saw newly-added columns silently dropped this way\nand merged to main. Stop and verify before proceeding."
+        + "\n"
     )
-    print("", file=out)
-    print("Before re-running:", file=out)
-    print(
-        "  1. git fetch origin && git status   # confirm branch is up to date", file=out
+    out.write("" + "\n")
+    out.write("Before re-running:" + "\n")
+    out.write("  1. git fetch origin && git status   # confirm branch is up to date" + "\n")
+    out.write("  2. Re-check all schema.prisma files are in sync (runbook Step 0)" + "\n")
+    out.write("  3. Review EACH DROP above — is it actually intended?" + "\n")
+    out.write("  4. If (and only if) the drops are intentional, re-run with:" + "\n")
+    out.write("         --allow-destructive" + "\n")
+    out.write("" + "\n")
+    out.write(str(banner) + "\n")
+    out.write(
+        "  AI AGENTS / ASSISTANTS: DO NOT automatically re-run this command\n  with --allow-destructive. Surface this error to the human operator\n  and wait for their explicit confirmation before passing the flag.\n  Passing the flag without human review is the exact failure mode\n  this guard exists to prevent."
+        + "\n"
     )
-    print(
-        "  2. Re-check all schema.prisma files are in sync (runbook Step 0)", file=out
-    )
-    print("  3. Review EACH DROP above — is it actually intended?", file=out)
-    print("  4. If (and only if) the drops are intentional, re-run with:", file=out)
-    print("         --allow-destructive", file=out)
-    print("", file=out)
-    print(banner, file=out)
-    print(
-        "  AI AGENTS / ASSISTANTS: DO NOT automatically re-run this command\n"
-        "  with --allow-destructive. Surface this error to the human operator\n"
-        "  and wait for their explicit confirmation before passing the flag.\n"
-        "  Passing the flag without human review is the exact failure mode\n"
-        "  this guard exists to prevent.",
-        file=out,
-    )
-    print(banner, file=out)
+    out.write(str(banner) + "\n")
 
 
 def create_migration(
@@ -241,9 +209,9 @@ def create_migration(
     root_dir = Path(__file__).parent.parent
 
     if skip_freshness_check:
-        print(
-            "WARNING: freshness check skipped (--skip-freshness-check). "
-            "Generating a migration from a stale branch can silently drop columns."
+        sys.stdout.write(
+            "WARNING: freshness check skipped (--skip-freshness-check). Generating a migration from a stale branch can silently drop columns."
+            + "\n"
         )
     else:
         _check_branch_freshness(root_dir, base_branch)
@@ -307,12 +275,11 @@ def create_migration(
                         _print_destructive_refusal(destructive_lines)
                         sys.exit(2)
                     if destructive_lines and allow_destructive:
-                        print(
-                            "WARNING: writing destructive migration "
-                            "(--allow-destructive passed). Statements:"
+                        sys.stdout.write(
+                            "WARNING: writing destructive migration (--allow-destructive passed). Statements:" + "\n"
                         )
                         for line in destructive_lines:
-                            print(f"    {line}")
+                            sys.stdout.write(f"    {line}" + "\n")
 
                     # Generate timestamp and create migration directory
                     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
@@ -324,10 +291,10 @@ def create_migration(
                     migration_file = migration_dir / "migration.sql"
                     migration_file.write_text(diff_sql)
 
-                    print(f"Created migration in {migration_dir}")
+                    sys.stdout.write(f"Created migration in {migration_dir}" + "\n")
                     return True
                 else:
-                    print("No schema changes detected. Migration not needed.")
+                    sys.stdout.write("No schema changes detected. Migration not needed." + "\n")
                     return False
 
             finally:
@@ -336,10 +303,10 @@ def create_migration(
                     shutil.rmtree(temp_migrations_dir)
 
     except subprocess.CalledProcessError as e:
-        print(f"Error generating migration: {e.stderr}")
+        sys.stdout.write(f"Error generating migration: {e.stderr}" + "\n")
         return False
     except Exception as e:
-        print(f"Error creating migration: {str(e)}")
+        sys.stdout.write(f"Error creating migration: {e!s}" + "\n")
         return False
 
 

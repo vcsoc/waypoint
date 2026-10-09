@@ -1,3 +1,4 @@
+import sys
 from concurrent.futures import ThreadPoolExecutor
 
 import requests
@@ -11,7 +12,7 @@ def make_request(session):
     data = {}  # Replace with your JSON payload if needed
 
     response = session.post(url, headers=headers, json=data)
-    print(f"Status code: {response.status_code}")
+    sys.stdout.write(f"Status code: {response.status_code}" + "\n")
 
 
 # Number of concurrent requests

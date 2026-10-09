@@ -16,7 +16,6 @@ import json
 import os
 import sys
 import time
-from typing import Dict, List, Optional, Tuple
 
 import httpx
 import yaml
@@ -43,7 +42,7 @@ class LiteLLMHealthCheckClient:
         timeout: int = 120,  # Match Go implementation's 120s timeout
         completion_prompt: str = _DEFAULT_COMPLETION_PROMPT,  # Default ~100k chars
         embedding_text: str = _DEFAULT_EMBEDDING_TEXT,  # Default ~100k chars
-        custom_auth_header: Optional[str] = None,
+        custom_auth_header: str | None = None,
     ):
         """
         Initialize the health check client.
@@ -64,14 +63,8 @@ class LiteLLMHealthCheckClient:
         self.embedding_text = embedding_text
 
         # Debug: Print prompt/text lengths
-        print(
-            f"DEBUG: Completion prompt length: {len(self.completion_prompt)} characters",
-            file=sys.stderr,
-        )
-        print(
-            f"DEBUG: Embedding text length: {len(self.embedding_text)} characters",
-            file=sys.stderr,
-        )
+        sys.stderr.write(f"DEBUG: Completion prompt length: {len(self.completion_prompt)} characters" + "\n")
+        sys.stderr.write(f"DEBUG: Embedding text length: {len(self.embedding_text)} characters" + "\n")
 
         # Support custom auth header for proxies with custom authentication
         # Handle both None and empty string
@@ -81,15 +74,15 @@ class LiteLLMHealthCheckClient:
                 custom_auth_header: f"Bearer {api_key}",
                 "Content-Type": "application/json",
             }
-            print(f"Using custom auth header: {custom_auth_header}", file=sys.stderr)
+            sys.stderr.write(f"Using custom auth header: {custom_auth_header}" + "\n")
         else:
             self.headers = {
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json",
             }
-            print("Using standard Authorization header", file=sys.stderr)
+            sys.stderr.write("Using standard Authorization header" + "\n")
 
-    def load_models_from_yaml(self, yaml_path: str) -> List[Dict]:
+    def load_models_from_yaml(self, yaml_path: str) -> list[dict]:
         """
         Load models from a YAML config file (similar to Go implementation).
 
@@ -123,12 +116,10 @@ class LiteLLMHealthCheckClient:
 
             return models
         except Exception as e:
-            print(
-                f"Error loading models from YAML file {yaml_path}: {e}", file=sys.stderr
-            )
+            sys.stderr.write(f"Error loading models from YAML file {yaml_path}: {e}" + "\n")
             return []
 
-    async def fetch_models(self, client: httpx.AsyncClient) -> List[Dict]:
+    async def fetch_models(self, client: httpx.AsyncClient) -> list[dict]:
         """
         Fetch all available models from the proxy API.
 
@@ -150,7 +141,7 @@ class LiteLLMHealthCheckClient:
                 models.append({"id": m["id"], "mode": "", "provider": ""})
             return models
         except Exception as e:
-            print(f"Error fetching models from /v1/models: {e}", file=sys.stderr)
+            sys.stderr.write(f"Error fetching models from /v1/models: {e}" + "\n")
             # Fallback to /model/info endpoint which has more details
             try:
                 response = await client.get(
@@ -180,12 +171,10 @@ class LiteLLMHealthCheckClient:
                     )
                 return models
             except Exception as e2:
-                print(f"Error fetching models from /model/info: {e2}", file=sys.stderr)
+                sys.stderr.write(f"Error fetching models from /model/info: {e2}" + "\n")
                 return []
 
-    async def check_model_health(
-        self, client: httpx.AsyncClient, model: Dict
-    ) -> Tuple[str, Dict]:
+    async def check_model_health(self, client: httpx.AsyncClient, model: dict) -> tuple[str, dict]:
         """
         Check health of a single model by sending a test request.
 
@@ -219,9 +208,8 @@ class LiteLLMHealthCheckClient:
             if is_embedding:
                 # Test embedding endpoint (matching Go implementation)
                 embedding_text_length = len(self.embedding_text)
-                print(
-                    f"DEBUG: Sending embedding text of length {embedding_text_length} chars to model {model_id}",
-                    file=sys.stderr,
+                sys.stderr.write(
+                    f"DEBUG: Sending embedding text of length {embedding_text_length} chars to model {model_id}" + "\n"
                 )
                 embedding_response = await client.post(
                     f"{self.base_url}/v1/embeddings",
@@ -244,10 +232,7 @@ class LiteLLMHealthCheckClient:
             else:
                 # Test chat completion endpoint (matching Go implementation)
                 prompt_length = len(self.completion_prompt)
-                print(
-                    f"DEBUG: Sending prompt of length {prompt_length} chars to model {model_id}",
-                    file=sys.stderr,
-                )
+                sys.stderr.write(f"DEBUG: Sending prompt of length {prompt_length} chars to model {model_id}" + "\n")
                 completion_response = await client.post(
                     f"{self.base_url}/v1/chat/completions",
                     headers=self.headers,
@@ -288,9 +273,9 @@ class LiteLLMHealthCheckClient:
 
     async def run_health_checks(
         self,
-        models: Optional[List[Dict]] = None,
-        models_only: Optional[List[str]] = None,
-    ) -> Dict[str, Dict]:
+        models: list[dict] | None = None,
+        models_only: list[str] | None = None,
+    ) -> dict[str, dict]:
         """
         Run health checks on all models concurrently.
 
@@ -307,24 +292,18 @@ class LiteLLMHealthCheckClient:
                 models = await self.fetch_models(client)
 
             if not models:
-                print("No models found to health check", file=sys.stderr)
+                sys.stderr.write("No models found to health check" + "\n")
                 return {}
 
             if models_only:
                 allowlist = {m.strip() for m in models_only if m and m.strip()}
                 models = [m for m in models if m.get("id") in allowlist]
-                print(
-                    f"Filtering to only check {len(models)} models: {', '.join(sorted(allowlist))}",
-                    file=sys.stderr,
-                )
+                sys.stderr.write(f"Filtering to only check {len(models)} models: {', '.join(sorted(allowlist))}" + "\n")
                 if not models:
-                    print(
-                        "No models matched WAYPOINT_MODELS_ONLY filter",
-                        file=sys.stderr,
-                    )
+                    sys.stderr.write("No models matched WAYPOINT_MODELS_ONLY filter" + "\n")
                     return {}
 
-            print(f"Running health checks on {len(models)} models...", file=sys.stderr)
+            sys.stderr.write(f"Running health checks on {len(models)} models..." + "\n")
 
             # Run all health checks concurrently
             tasks = [self.check_model_health(client, model) for model in models]
@@ -334,7 +313,7 @@ class LiteLLMHealthCheckClient:
             results = {}
             for result in results_list:
                 if isinstance(result, Exception):
-                    print(f"Exception in health check task: {result}", file=sys.stderr)
+                    sys.stderr.write(f"Exception in health check task: {result}" + "\n")
                     continue
                 # Type narrowing: after checking it's not an Exception, it's a Tuple
                 if isinstance(result, tuple) and len(result) == 2:
@@ -343,7 +322,7 @@ class LiteLLMHealthCheckClient:
 
             return results
 
-    def print_results(self, results: Dict[str, Dict], json_output: bool = False):
+    def print_results(self, results: dict[str, dict], json_output: bool = False):
         """
         Print health check results.
 
@@ -352,43 +331,38 @@ class LiteLLMHealthCheckClient:
             json_output: If True, output as JSON
         """
         if json_output:
-            print(json.dumps(results, indent=2))
+            sys.stdout.write(str(json.dumps(results, indent=2)) + "\n")
             return
 
         healthy_count = sum(1 for r in results.values() if r.get("healthy"))
         unhealthy_count = len(results) - healthy_count
 
         # Print detailed results for each model (matching Go output format)
-        print(f"\n{'='*60}", file=sys.stderr)
-        print(f"Starting health check queries\n", file=sys.stderr)
+        sys.stderr.write(f"\n{'=' * 60}" + "\n")
+        sys.stderr.write("Starting health check queries\n" + "\n")
 
         for model_id, result in results.items():
             if result.get("healthy"):
                 if result.get("mode") == "embedding":
                     dimensions = result.get("dimensions", 0)
-                    print(
-                        f"---- {model_id} ----\n✅ Success. "
-                        f"Generated embedding vector with {dimensions} dimensions.\n\n",
-                        file=sys.stderr,
+                    sys.stderr.write(
+                        f"---- {model_id} ----\n✅ Success. Generated embedding vector with {dimensions} dimensions.\n\n"
+                        + "\n"
                     )
                 else:
                     response_text = result.get("response_text", "")
-                    print(
-                        f"---- {model_id} ----\n✅ Success. "
-                        f"Response:\n{response_text}\n\n",
-                        file=sys.stderr,
-                    )
+                    sys.stderr.write(f"---- {model_id} ----\n✅ Success. Response:\n{response_text}\n\n" + "\n")
             else:
                 error = result.get("error", "Unknown error")
-                print(f"---- {model_id} ----\n❌ ERROR: {error}\n\n", file=sys.stderr)
+                sys.stderr.write(f"---- {model_id} ----\n❌ ERROR: {error}\n\n" + "\n")
 
-        print(f"{'='*60}", file=sys.stderr)
-        print(f"Health Check Summary", file=sys.stderr)
-        print(f"{'='*60}", file=sys.stderr)
-        print(f"Total models: {len(results)}", file=sys.stderr)
-        print(f"Healthy: {healthy_count}", file=sys.stderr)
-        print(f"Unhealthy: {unhealthy_count}", file=sys.stderr)
-        print(f"{'='*60}\n", file=sys.stderr)
+        sys.stderr.write(f"{'=' * 60}" + "\n")
+        sys.stderr.write("Health Check Summary" + "\n")
+        sys.stderr.write(f"{'=' * 60}" + "\n")
+        sys.stderr.write(f"Total models: {len(results)}" + "\n")
+        sys.stderr.write(f"Healthy: {healthy_count}" + "\n")
+        sys.stderr.write(f"Unhealthy: {unhealthy_count}" + "\n")
+        sys.stderr.write(f"{'=' * 60}\n" + "\n")
 
         # Exit with non-zero code if any models are unhealthy
         if unhealthy_count > 0:
@@ -408,14 +382,14 @@ async def main():
 
     # Debug: Print custom auth header value if set
     if custom_auth_header:
-        print(f"Custom auth header from env: '{custom_auth_header}'", file=sys.stderr)
+        sys.stderr.write(f"Custom auth header from env: '{custom_auth_header}'" + "\n")
 
     if not base_url:
-        print("Error: WAYPOINT_BASE_URL environment variable not set", file=sys.stderr)
+        sys.stderr.write("Error: WAYPOINT_BASE_URL environment variable not set" + "\n")
         sys.exit(1)
 
     if not api_key:
-        print("Error: WAYPOINT_API_KEY environment variable not set", file=sys.stderr)
+        sys.stderr.write("Error: WAYPOINT_API_KEY environment variable not set" + "\n")
         sys.exit(1)
 
     timeout = int(os.environ.get("WAYPOINT_TIMEOUT", "120"))  # Match Go's 120s default
@@ -443,10 +417,7 @@ async def main():
     if yaml_path:
         models = client.load_models_from_yaml(yaml_path)
         if models:
-            print(
-                f"Successfully loaded {len(models)} models from {yaml_path}",
-                file=sys.stderr,
-            )
+            sys.stderr.write(f"Successfully loaded {len(models)} models from {yaml_path}" + "\n")
 
     results = await client.run_health_checks(models=models, models_only=models_only)
     client.print_results(results, json_output=json_output)

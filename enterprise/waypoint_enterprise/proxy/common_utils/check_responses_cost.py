@@ -6,7 +6,7 @@ same route are non-inference and free.
 """
 
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, Dict, Final, Protocol, cast
+from typing import TYPE_CHECKING, Final, Protocol, cast
 
 import waypoint
 from waypoint._logging import verbose_proxy_logger
@@ -72,7 +72,7 @@ class CheckResponsesCost:
     async def _get_response(
         self,
         response_id: str,
-        litellm_metadata: Dict[str, str],
+        litellm_metadata: dict[str, str],
         via_router: bool,
     ) -> ResponsesAPIResponse:
         """Fetch the upstream response, using deployment credentials when available.

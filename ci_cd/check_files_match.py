@@ -4,8 +4,9 @@ import sys
 
 
 def main(argv=None):
-    print(
+    sys.stdout.write(
         "Comparing model_prices_and_context_window and waypoint/model_prices_and_context_window_backup.json files... checking if they match."
+        + "\n"
     )
 
     file1 = "model_prices_and_context_window.json"
@@ -14,11 +15,11 @@ def main(argv=None):
     cmp_result = filecmp.cmp(file1, file2, shallow=False)
 
     if cmp_result:
-        print(f"Passed! Files {file1} and {file2} match.")
+        sys.stdout.write(f"Passed! Files {file1} and {file2} match." + "\n")
         return 0
     else:
-        print(
-            f"Failed! Files {file1} and {file2} do not match. Copying content from {file1} to {file2}."
+        sys.stdout.write(
+            f"Failed! Files {file1} and {file2} do not match. Copying content from {file1} to {file2}." + "\n"
         )
         copy_content(file1, file2)
         return 1

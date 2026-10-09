@@ -1,4 +1,5 @@
 import subprocess
+import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -45,14 +46,14 @@ def create_baseline():
         migration_file = migration_dir / "migration.sql"
         migration_file.write_text(result.stdout)
 
-        print(f"Created baseline migration in {migration_dir}")
+        sys.stdout.write(f"Created baseline migration in {migration_dir}" + "\n")
         return True
 
     except subprocess.CalledProcessError as e:
-        print(f"Error running prisma command: {e.stderr}")
+        sys.stdout.write(f"Error running prisma command: {e.stderr}" + "\n")
         return False
     except Exception as e:
-        print(f"Error creating baseline migration: {str(e)}")
+        sys.stdout.write(f"Error creating baseline migration: {e!s}" + "\n")
         return False
 
 

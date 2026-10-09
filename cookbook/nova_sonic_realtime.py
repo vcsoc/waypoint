@@ -18,7 +18,7 @@ import asyncio
 import base64
 import json
 import os
-from typing import Optional
+import sys
 
 import pyaudio
 import websockets
@@ -44,7 +44,7 @@ class RealtimeClient:
     def __init__(self, url: str, api_key: str):
         self.url = url
         self.api_key = api_key
-        self.ws: Optional[websockets.WebSocketClientProtocol] = None
+        self.ws: websockets.WebSocketClientProtocol | None = None
         self.is_active = False
         self.audio_queue = asyncio.Queue(maxsize=AUDIO_QUEUE_MAXSIZE)
         self.pyaudio = pyaudio.PyAudio()
@@ -53,7 +53,7 @@ class RealtimeClient:
 
     async def connect(self):
         """Connect to Waypoint proxy realtime endpoint."""
-        print(f"Connecting to {self.url}...")
+        sys.stdout.write(f"Connecting to {self.url}..." + "\n")
 
         headers = {}
         if self.api_key:
@@ -65,7 +65,7 @@ class RealtimeClient:
             max_size=10 * 1024 * 1024,  # 10MB max message size
         )
         self.is_active = True
-        print("✓ Connected to Waypoint proxy")
+        sys.stdout.write("✓ Connected to Waypoint proxy" + "\n")
 
     async def send_session_update(self):
         """Send session configuration."""
@@ -88,7 +88,7 @@ class RealtimeClient:
             },
         }
         await self.ws.send(json.dumps(session_update))
-        print("✓ Session configuration sent")
+        sys.stdout.write("✓ Session configuration sent" + "\n")
 
     async def receive_messages(self):
         """Receive and process messages from the server."""
@@ -102,15 +102,16 @@ class RealtimeClient:
                     event_type = data.get("type")
 
                     if event_type == "session.created":
-                        print(f"✓ Session created: {data.get('session', {}).get('id')}")
+                        sys.stdout.write(f"✓ Session created: {data.get('session', {}).get('id')}" + "\n")
 
                     elif event_type == "response.created":
-                        print("🤖 Assistant is responding...")
+                        sys.stdout.write("🤖 Assistant is responding..." + "\n")
 
                     elif event_type == "response.text.delta":
                         # Print text transcription
                         delta = data.get("delta", "")
-                        print(delta, end="", flush=True)
+                        sys.stdout.write(str(delta))
+                        sys.stdout.flush()
 
                     elif event_type == "response.audio.delta":
                         # Queue audio for playback
@@ -120,25 +121,25 @@ class RealtimeClient:
                             await self.audio_queue.put(audio_bytes)
 
                     elif event_type == "response.text.done":
-                        print()  # New line after text
+                        sys.stdout.write("" + "\n")  # New line after text
 
                     elif event_type == "response.done":
-                        print("✓ Response complete")
+                        sys.stdout.write("✓ Response complete" + "\n")
 
                     elif event_type == "error":
-                        print(f"❌ Error: {data.get('error', {})}")
+                        sys.stdout.write(f"❌ Error: {data.get('error', {})}" + "\n")
 
                     else:
                         # Debug: print other event types
-                        print(f"[{event_type}]", end=" ")
+                        sys.stdout.write(f"[{event_type}]" + " ")
 
                 except json.JSONDecodeError:
-                    print(f"Failed to parse message: {message[:100]}")
+                    sys.stdout.write(f"Failed to parse message: {message[:100]}" + "\n")
 
         except websockets.exceptions.ConnectionClosed:
-            print("\n✗ Connection closed")
+            sys.stdout.write("\n✗ Connection closed" + "\n")
         except Exception as e:
-            print(f"\n✗ Error receiving messages: {e}")
+            sys.stdout.write(f"\n✗ Error receiving messages: {e}" + "\n")
         finally:
             self.is_active = False
 
@@ -164,8 +165,8 @@ class RealtimeClient:
 
     async def capture_audio(self):
         """Capture audio from microphone and send to server."""
-        print("\n🎤 Starting audio capture...")
-        print("Speak into your microphone. Press Ctrl+C to stop.\n")
+        sys.stdout.write("\n🎤 Starting audio capture..." + "\n")
+        sys.stdout.write("Speak into your microphone. Press Ctrl+C to stop.\n" + "\n")
 
         self.input_stream = self.pyaudio.open(
             format=FORMAT,
@@ -183,7 +184,7 @@ class RealtimeClient:
                 await self.send_audio_chunk(audio_data)
                 await asyncio.sleep(0.01)  # Small delay to prevent overwhelming
         except Exception as e:
-            print(f"Error capturing audio: {e}")
+            sys.stdout.write(f"Error capturing audio: {e}" + "\n")
         finally:
             if self.input_stream:
                 self.input_stream.stop_stream()
@@ -191,7 +192,7 @@ class RealtimeClient:
 
     async def play_audio(self):
         """Play audio responses from the server."""
-        print("🔊 Starting audio playback...")
+        sys.stdout.write("🔊 Starting audio playback..." + "\n")
 
         self.output_stream = self.pyaudio.open(
             format=FORMAT,
@@ -212,7 +213,7 @@ class RealtimeClient:
                 except asyncio.TimeoutError:
                     continue
         except Exception as e:
-            print(f"Error playing audio: {e}")
+            sys.stdout.write(f"Error playing audio: {e}" + "\n")
         finally:
             if self.output_stream:
                 self.output_stream.stop_stream()
@@ -234,15 +235,15 @@ class RealtimeClient:
             self.output_stream.close()
 
         self.pyaudio.terminate()
-        print("\n✓ Connection closed")
+        sys.stdout.write("\n✓ Connection closed" + "\n")
 
 
 async def main():
     """Main function to run the realtime client."""
-    print("=" * 80)
-    print("Bedrock Nova Sonic Realtime Client")
-    print("=" * 80)
-    print()
+    sys.stdout.write(str("=" * 80) + "\n")
+    sys.stdout.write("Bedrock Nova Sonic Realtime Client" + "\n")
+    sys.stdout.write(str("=" * 80) + "\n")
+    sys.stdout.write("" + "\n")
 
     client = RealtimeClient(LITELLM_PROXY_URL, LITELLM_API_KEY)
 
@@ -270,9 +271,9 @@ async def main():
         )
 
     except KeyboardInterrupt:
-        print("\n\n⚠ Interrupted by user")
+        sys.stdout.write("\n\n⚠ Interrupted by user" + "\n")
     except Exception as e:
-        print(f"\n❌ Error: {e}")
+        sys.stdout.write(f"\n❌ Error: {e}" + "\n")
         import traceback
 
         traceback.print_exc()
@@ -281,13 +282,13 @@ async def main():
 
 
 if __name__ == "__main__":
-    print("\nMake sure:")
-    print("1. Waypoint proxy is running on port 4000")
-    print("2. Bedrock is configured in proxy_server_config.yaml")
-    print("3. AWS credentials are set")
-    print()
+    sys.stdout.write("\nMake sure:" + "\n")
+    sys.stdout.write("1. Waypoint proxy is running on port 4000" + "\n")
+    sys.stdout.write("2. Bedrock is configured in proxy_server_config.yaml" + "\n")
+    sys.stdout.write("3. AWS credentials are set" + "\n")
+    sys.stdout.write("" + "\n")
 
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print("\n\nGoodbye!")
+        sys.stdout.write("\n\nGoodbye!" + "\n")

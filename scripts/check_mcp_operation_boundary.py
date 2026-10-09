@@ -55,9 +55,9 @@ def main() -> int:
         finding for path in sorted(PACKAGE.rglob("*.py")) for finding in violations(path, path.read_text())
     )
     if findings:
-        print("\n".join(findings), file=sys.stderr)
+        sys.stderr.write(str("\n".join(findings)) + "\n")
         return 1
-    print("MCP operation boundary: passed")
+    sys.stdout.write("MCP operation boundary: passed" + "\n")
     return 0
 
 

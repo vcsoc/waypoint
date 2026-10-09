@@ -8,10 +8,9 @@ All /vector_store management endpoints
 /vector_store/list
 """
 
-import copy
 import json
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Final, List, Optional, Protocol
+from typing import TYPE_CHECKING, Final, Protocol
 
 from fastapi import APIRouter, Depends, HTTPException
 
@@ -109,7 +108,7 @@ async def new_vector_store(
             )
 
         # Safely handle JSON serialization of litellm_params
-        litellm_params_json: Optional[str] = None
+        litellm_params_json: str | None = None
         _input_litellm_params: dict = vector_store.get("litellm_params", {}) or {}
         if _input_litellm_params is not None:
             litellm_params_dict = GenericLiteLLMParams(
@@ -143,7 +142,7 @@ async def new_vector_store(
             "vector_store": new_vector_store,
         }
     except Exception as e:
-        verbose_proxy_logger.exception(f"Error creating vector store: {str(e)}")
+        verbose_proxy_logger.exception(f"Error creating vector store: {e!s}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -197,7 +196,7 @@ async def list_vector_stores(
                 )
 
         # Use database as single source of truth for listing
-        combined_vector_stores: List[LiteLLM_ManagedVectorStore] = vector_stores_from_db
+        combined_vector_stores: list[LiteLLM_ManagedVectorStore] = vector_stores_from_db
 
         total_count = len(combined_vector_stores)
         total_pages = (total_count + page_size - 1) // page_size
@@ -213,7 +212,7 @@ async def list_vector_stores(
 
         return response
     except Exception as e:
-        verbose_proxy_logger.exception(f"Error listing vector stores: {str(e)}")
+        verbose_proxy_logger.exception(f"Error listing vector stores: {e!s}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -290,7 +289,7 @@ async def get_vector_store_info(
             if vector_store is not None:
                 vector_store_metadata = vector_store.get("vector_store_metadata")
                 # Parse metadata if it's a JSON string
-                parsed_metadata: Optional[dict] = None
+                parsed_metadata: dict | None = None
                 if isinstance(vector_store_metadata, str):
                     parsed_metadata = json.loads(vector_store_metadata)
                 elif isinstance(vector_store_metadata, dict):
@@ -328,7 +327,7 @@ async def get_vector_store_info(
         vector_store_dict = vector_store.model_dump()
         return {"vector_store": vector_store_dict}
     except Exception as e:
-        verbose_proxy_logger.exception(f"Error getting vector store info: {str(e)}")
+        verbose_proxy_logger.exception(f"Error getting vector store info: {e!s}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -370,5 +369,5 @@ async def update_vector_store(
 
         return {"vector_store": updated_vs}
     except Exception as e:
-        verbose_proxy_logger.exception(f"Error updating vector store: {str(e)}")
+        verbose_proxy_logger.exception(f"Error updating vector store: {e!s}")
         raise HTTPException(status_code=500, detail=str(e))

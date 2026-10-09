@@ -14,8 +14,8 @@ Requirements:
 
 import json
 import os
+import sys
 import time
-from typing import Optional
 
 import requests
 
@@ -39,7 +39,7 @@ class VeoVideoGenerator:
         self.api_key = api_key
         self.headers = {"x-goog-api-key": api_key, "Content-Type": "application/json"}
 
-    def generate_video(self, prompt: str) -> Optional[str]:
+    def generate_video(self, prompt: str) -> str | None:
         """
         Initiate video generation with Veo.
 
@@ -49,39 +49,37 @@ class VeoVideoGenerator:
         Returns:
             Operation name if successful, None otherwise
         """
-        print(f"🎬 Generating video with prompt: '{prompt}'")
+        sys.stdout.write(f"🎬 Generating video with prompt: '{prompt}'" + "\n")
 
         url = f"{self.base_url}/models/veo-3.0-generate-preview:predictLongRunning"
         payload = {"instances": [{"prompt": prompt}]}
 
         try:
-            response = requests.post(url, headers=self.headers, json=payload)
+            response = requests.post(url, headers=self.headers, json=payload, timeout=30)
             response.raise_for_status()
 
             data = response.json()
             operation_name = data.get("name")
 
             if operation_name:
-                print(f"✅ Video generation started: {operation_name}")
+                sys.stdout.write(f"✅ Video generation started: {operation_name}" + "\n")
                 return operation_name
             else:
-                print("❌ No operation name returned")
-                print(f"Response: {json.dumps(data, indent=2)}")
+                sys.stdout.write("❌ No operation name returned" + "\n")
+                sys.stdout.write(f"Response: {json.dumps(data, indent=2)}" + "\n")
                 return None
 
         except requests.RequestException as e:
-            print(f"❌ Failed to start video generation: {e}")
+            sys.stdout.write(f"❌ Failed to start video generation: {e}" + "\n")
             if hasattr(e, "response") and e.response is not None:
                 try:
                     error_data = e.response.json()
-                    print(f"Error details: {json.dumps(error_data, indent=2)}")
-                except:
-                    print(f"Error response: {e.response.text}")
+                    sys.stdout.write(f"Error details: {json.dumps(error_data, indent=2)}" + "\n")
+                except ValueError:
+                    sys.stdout.write(f"Error response: {e.response.text}" + "\n")
             return None
 
-    def wait_for_completion(
-        self, operation_name: str, max_wait_time: int = 600
-    ) -> Optional[str]:
+    def wait_for_completion(self, operation_name: str, max_wait_time: int = 600) -> str | None:
         """
         Poll operation status until video generation is complete.
 
@@ -92,7 +90,7 @@ class VeoVideoGenerator:
         Returns:
             Video URI if successful, None otherwise
         """
-        print("⏳ Waiting for video generation to complete...")
+        sys.stdout.write("⏳ Waiting for video generation to complete..." + "\n")
 
         operation_url = f"{self.base_url}/{operation_name}"
         start_time = time.time()
@@ -100,38 +98,36 @@ class VeoVideoGenerator:
 
         while time.time() - start_time < max_wait_time:
             try:
-                print(
-                    f"🔍 Polling status... ({int(time.time() - start_time)}s elapsed)"
-                )
+                sys.stdout.write(f"🔍 Polling status... ({int(time.time() - start_time)}s elapsed)" + "\n")
 
-                response = requests.get(operation_url, headers=self.headers)
+                response = requests.get(operation_url, headers=self.headers, timeout=30)
                 response.raise_for_status()
 
                 data = response.json()
 
                 # Check for errors
                 if "error" in data:
-                    print("❌ Error in video generation:")
-                    print(json.dumps(data["error"], indent=2))
+                    sys.stdout.write("❌ Error in video generation:" + "\n")
+                    sys.stdout.write(str(json.dumps(data["error"], indent=2)) + "\n")
                     return None
 
                 # Check if operation is complete
                 is_done = data.get("done", False)
 
                 if is_done:
-                    print("🎉 Video generation complete!")
+                    sys.stdout.write("🎉 Video generation complete!" + "\n")
 
                     try:
                         # Extract video URI from nested response
                         video_uri = data["response"]["generateVideoResponse"][
                             "generatedSamples"
                         ][0]["video"]["uri"]
-                        print(f"📹 Video URI: {video_uri}")
+                        sys.stdout.write(f"📹 Video URI: {video_uri}" + "\n")
                         return video_uri
                     except KeyError as e:
-                        print(f"❌ Could not extract video URI: {e}")
-                        print("Full response:")
-                        print(json.dumps(data, indent=2))
+                        sys.stdout.write(f"❌ Could not extract video URI: {e}" + "\n")
+                        sys.stdout.write("Full response:" + "\n")
+                        sys.stdout.write(str(json.dumps(data, indent=2)) + "\n")
                         return None
 
                 # Wait before next poll, with exponential backoff
@@ -139,10 +135,10 @@ class VeoVideoGenerator:
                 poll_interval = min(poll_interval * 1.2, 30)  # Cap at 30 seconds
 
             except requests.RequestException as e:
-                print(f"❌ Error polling operation status: {e}")
+                sys.stdout.write(f"❌ Error polling operation status: {e}" + "\n")
                 time.sleep(poll_interval)
 
-        print(f"⏰ Timeout after {max_wait_time} seconds")
+        sys.stdout.write(f"⏰ Timeout after {max_wait_time} seconds" + "\n")
         return None
 
     def download_video(
@@ -158,8 +154,8 @@ class VeoVideoGenerator:
         Returns:
             True if download successful, False otherwise
         """
-        print(f"⬇️  Downloading video...")
-        print(f"Original URI: {video_uri}")
+        sys.stdout.write("⬇️  Downloading video..." + "\n")
+        sys.stdout.write(f"Original URI: {video_uri}" + "\n")
 
         # Convert Google URI to Waypoint proxy URI
         # Example: files/abc123 -> /gemini/v1beta/files/abc123:download?alt=media
@@ -169,7 +165,7 @@ class VeoVideoGenerator:
             download_path = video_uri
 
         litellm_download_url = f"{self.base_url}/{download_path}"
-        print(f"Download URL: {litellm_download_url}")
+        sys.stdout.write(f"Download URL: {litellm_download_url}" + "\n")
 
         try:
             # Download with streaming and redirect handling
@@ -178,6 +174,7 @@ class VeoVideoGenerator:
                 headers=self.headers,
                 stream=True,
                 allow_redirects=True,  # Handle redirects automatically
+                timeout=30,
             )
             response.raise_for_status()
 
@@ -191,31 +188,29 @@ class VeoVideoGenerator:
 
                         # Progress indicator for large files
                         if downloaded_size % (1024 * 1024) == 0:  # Every MB
-                            print(
-                                f"📦 Downloaded {downloaded_size / (1024*1024):.1f} MB..."
-                            )
+                            sys.stdout.write(f"📦 Downloaded {downloaded_size / (1024 * 1024):.1f} MB..." + "\n")
 
             # Verify file was created and has content
             if os.path.exists(output_filename):
                 file_size = os.path.getsize(output_filename)
                 if file_size > 0:
-                    print(f"✅ Video downloaded successfully!")
-                    print(f"📁 Saved as: {output_filename}")
-                    print(f"📏 File size: {file_size / (1024*1024):.2f} MB")
+                    sys.stdout.write("✅ Video downloaded successfully!" + "\n")
+                    sys.stdout.write(f"📁 Saved as: {output_filename}" + "\n")
+                    sys.stdout.write(f"📏 File size: {file_size / (1024 * 1024):.2f} MB" + "\n")
                     return True
                 else:
-                    print("❌ Downloaded file is empty")
+                    sys.stdout.write("❌ Downloaded file is empty" + "\n")
                     os.remove(output_filename)
                     return False
             else:
-                print("❌ File was not created")
+                sys.stdout.write("❌ File was not created" + "\n")
                 return False
 
         except requests.RequestException as e:
-            print(f"❌ Download failed: {e}")
+            sys.stdout.write(f"❌ Download failed: {e}" + "\n")
             if hasattr(e, "response") and e.response is not None:
-                print(f"Status code: {e.response.status_code}")
-                print(f"Response headers: {dict(e.response.headers)}")
+                sys.stdout.write(f"Status code: {e.response.status_code}" + "\n")
+                sys.stdout.write(f"Response headers: {dict(e.response.headers)}" + "\n")
             return False
 
     def generate_and_download(self, prompt: str, output_filename: str = None) -> bool:
@@ -239,9 +234,9 @@ class VeoVideoGenerator:
                 f"veo_video_{safe_prompt.replace(' ', '_')}_{timestamp}.mp4"
             )
 
-        print("=" * 60)
-        print("🎬 VEO VIDEO GENERATION WORKFLOW")
-        print("=" * 60)
+        sys.stdout.write(str("=" * 60) + "\n")
+        sys.stdout.write("🎬 VEO VIDEO GENERATION WORKFLOW" + "\n")
+        sys.stdout.write(str("=" * 60) + "\n")
 
         # Step 1: Generate video
         operation_name = self.generate_video(prompt)
@@ -257,14 +252,14 @@ class VeoVideoGenerator:
         success = self.download_video(video_uri, output_filename)
 
         if success:
-            print("=" * 60)
-            print("🎉 SUCCESS! Video generation complete!")
-            print(f"📁 Video saved as: {output_filename}")
-            print("=" * 60)
+            sys.stdout.write(str("=" * 60) + "\n")
+            sys.stdout.write("🎉 SUCCESS! Video generation complete!" + "\n")
+            sys.stdout.write(f"📁 Video saved as: {output_filename}" + "\n")
+            sys.stdout.write(str("=" * 60) + "\n")
         else:
-            print("=" * 60)
-            print("❌ FAILED! Video generation or download failed")
-            print("=" * 60)
+            sys.stdout.write(str("=" * 60) + "\n")
+            sys.stdout.write("❌ FAILED! Video generation or download failed" + "\n")
+            sys.stdout.write(str("=" * 60) + "\n")
 
         return success
 
@@ -282,8 +277,8 @@ def main():
     base_url = os.getenv("WAYPOINT_BASE_URL", "http://localhost:4000/gemini/v1beta")
     api_key = os.environ["WAYPOINT_API_KEY"]
 
-    print("🚀 Starting Veo Video Generation Example")
-    print(f"📡 Using LiteLLM proxy at: {base_url}")
+    sys.stdout.write("🚀 Starting Veo Video Generation Example" + "\n")
+    sys.stdout.write(f"📡 Using LiteLLM proxy at: {base_url}" + "\n")
 
     # Initialize generator
     generator = VeoVideoGenerator(base_url=base_url, api_key=api_key)
@@ -298,24 +293,24 @@ def main():
 
     # Use first example or get from user
     prompt = example_prompts[0]
-    print(f"🎬 Using prompt: '{prompt}'")
+    sys.stdout.write(f"🎬 Using prompt: '{prompt}'" + "\n")
 
     # Generate and download video
     success = generator.generate_and_download(prompt)
 
     if success:
-        print("\n✅ Example completed successfully!")
-        print("💡 Try modifying the prompt in the script for different videos!")
+        sys.stdout.write("\n✅ Example completed successfully!" + "\n")
+        sys.stdout.write("💡 Try modifying the prompt in the script for different videos!" + "\n")
     else:
-        print("\n❌ Example failed!")
-        print("🔧 Check your Waypoint proxy configuration and Google AI Studio API key")
+        sys.stdout.write("\n❌ Example failed!" + "\n")
+        sys.stdout.write("🔧 Check your Waypoint proxy configuration and Google AI Studio API key" + "\n")
 
         # Troubleshooting tips
-        print("\n🔍 Troubleshooting:")
-        print("1. Ensure Waypoint proxy is running with Google AI Studio pass-through")
-        print("2. Verify your Google AI Studio API key has Veo access")
-        print("3. Check that your prompt meets Veo's content guidelines")
-        print("4. Review the Waypoint proxy logs for detailed error information")
+        sys.stdout.write("\n🔍 Troubleshooting:" + "\n")
+        sys.stdout.write("1. Ensure Waypoint proxy is running with Google AI Studio pass-through" + "\n")
+        sys.stdout.write("2. Verify your Google AI Studio API key has Veo access" + "\n")
+        sys.stdout.write("3. Check that your prompt meets Veo's content guidelines" + "\n")
+        sys.stdout.write("4. Review the Waypoint proxy logs for detailed error information" + "\n")
 
 
 if __name__ == "__main__":

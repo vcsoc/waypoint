@@ -1,3 +1,5 @@
+import sys
+
 import requests
 
 
@@ -12,8 +14,7 @@ def get_next_url(response):
     headers = response.headers
 
     next_url = headers["Link"]
-    print(next_url)
-    start_index = next_url.find("<")
+    sys.stdout.write(str(next_url) + "\n")
     end_index = next_url.find(">")
 
     return next_url[1:end_index]
@@ -27,9 +28,9 @@ def get_models(url):
     """
     models = []
     while url:
-        response = requests.get(url)
+        response = requests.get(url, timeout=30)
         if response.status_code != 200:
-            print(f"Failed to retrieve data. Status code: {response.status_code}")
+            sys.stdout.write(f"Failed to retrieve data. Status code: {response.status_code}" + "\n")
             return models
         payload = response.json()
         url = get_next_url(response)
@@ -54,7 +55,7 @@ url = "https://huggingface.co/api/models?filter=text-generation-inference"
 text_generation_models = get_models(url)
 cleaned_text_generation_models = get_cleaned_models(text_generation_models)
 
-print(cleaned_text_generation_models)
+sys.stdout.write(str(cleaned_text_generation_models) + "\n")
 
 
 # Get conversational models
@@ -62,7 +63,7 @@ url = "https://huggingface.co/api/models?filter=conversational"
 conversational_models = get_models(url)
 cleaned_conversational_models = get_cleaned_models(conversational_models)
 
-print(cleaned_conversational_models)
+sys.stdout.write(str(cleaned_conversational_models) + "\n")
 
 
 def write_to_txt(cleaned_models, filename):

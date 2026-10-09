@@ -14,12 +14,10 @@ Test the endpoint:
     curl "http://localhost:8080/beta/litellm_prompt_management?prompt_id=hello-world-prompt"
 """
 
-import json
-import os
-from typing import Any, Dict, List, Optional
+import sys
+from typing import Any
 
 from fastapi import FastAPI, Header, HTTPException, Query, status
-from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 # ============================================================================
@@ -40,13 +38,9 @@ class PromptResponse(BaseModel):
     """Response format for the prompt management API"""
 
     prompt_id: str = Field(..., description="The ID of the prompt")
-    prompt_template: List[MessageContent] = Field(
-        ..., description="Array of messages in OpenAI format"
-    )
-    prompt_template_model: Optional[str] = Field(
-        None, description="Optional model to use for this prompt"
-    )
-    prompt_template_optional_params: Optional[Dict[str, Any]] = Field(
+    prompt_template: list[MessageContent] = Field(..., description="Array of messages in OpenAI format")
+    prompt_template_model: str | None = Field(None, description="Optional model to use for this prompt")
+    prompt_template_optional_params: dict[str, Any] | None = Field(
         None, description="Optional parameters like temperature, max_tokens, etc."
     )
 
@@ -162,7 +156,7 @@ app = FastAPI(
 )
 
 
-def verify_api_key(authorization: Optional[str] = Header(None)) -> bool:
+def verify_api_key(authorization: str | None = Header(None)) -> bool:
     """
     Verify the API key from the Authorization header.
 
@@ -197,12 +191,10 @@ def verify_api_key(authorization: Optional[str] = Header(None)) -> bool:
 @app.get("/beta/litellm_prompt_management", response_model=PromptResponse)
 async def get_prompt(
     prompt_id: str = Query(..., description="The ID of the prompt to fetch"),
-    project_name: Optional[str] = Query(
-        None, description="Optional project name filter"
-    ),
-    slug: Optional[str] = Query(None, description="Optional slug filter"),
-    version: Optional[str] = Query(None, description="Optional version filter"),
-    authorization: Optional[str] = Header(None),
+    project_name: str | None = Query(None, description="Optional project name filter"),
+    slug: str | None = Query(None, description="Optional slug filter"),
+    version: str | None = Query(None, description="Optional version filter"),
+    authorization: str | None = Header(None),
 ) -> PromptResponse:
     """
     Get a prompt by ID with optional filtering.
@@ -226,13 +218,13 @@ async def get_prompt(
     verify_api_key(authorization)
 
     # Log the request parameters (useful for debugging)
-    print(f"Fetching prompt: {prompt_id}")
+    sys.stdout.write(f"Fetching prompt: {prompt_id}" + "\n")
     if project_name:
-        print(f"  Project: {project_name}")
+        sys.stdout.write(f"  Project: {project_name}" + "\n")
     if slug:
-        print(f"  Slug: {slug}")
+        sys.stdout.write(f"  Slug: {slug}" + "\n")
     if version:
-        print(f"  Version: {version}")
+        sys.stdout.write(f"  Version: {version}" + "\n")
 
     # Check if prompt exists
     if prompt_id not in PROMPTS_DB:
@@ -262,7 +254,7 @@ async def health_check():
 
 
 @app.get("/prompts")
-async def list_prompts(authorization: Optional[str] = Header(None)):
+async def list_prompts(authorization: str | None = Header(None)):
     """
     List all available prompts.
 
@@ -287,9 +279,7 @@ async def list_prompts(authorization: Optional[str] = Header(None)):
 
 
 @app.get("/prompts/{prompt_id}/variables")
-async def get_prompt_variables(
-    prompt_id: str, authorization: Optional[str] = Header(None)
-):
+async def get_prompt_variables(prompt_id: str, authorization: str | None = Header(None)):
     """
     Get all variables in a prompt template.
 
@@ -328,9 +318,7 @@ async def get_prompt_variables(
 
 
 @app.post("/prompts")
-async def create_prompt(
-    prompt: PromptResponse, authorization: Optional[str] = Header(None)
-):
+async def create_prompt(prompt: PromptResponse, authorization: str | None = Header(None)):
     """
     Create a new prompt (convenience endpoint for testing).
 
@@ -361,30 +349,28 @@ async def create_prompt(
 if __name__ == "__main__":
     import uvicorn
 
-    print("=" * 70)
-    print("Mock Prompt Management API Server")
-    print("=" * 70)
-    print(f"\nStarting server on http://localhost:8080")
-    print(f"\nAvailable prompts: {len(PROMPTS_DB)}")
-    for prompt_id in PROMPTS_DB.keys():
-        print(f"  - {prompt_id}")
-    print(f"\nValid API tokens: {len(VALID_API_TOKENS)}")
-    print("  - test-token-12345")
-    print("  - dev-token-67890")
-    print("  - prod-token-abcdef")
-    print("\nEndpoints:")
-    print("  GET  /beta/litellm_prompt_management?prompt_id=<id>  (Waypoint spec)")
-    print("  GET  /health                                          (health check)")
-    print("  GET  /prompts                                         (list all prompts)")
-    print(
-        "  GET  /prompts/{id}/variables                          (get prompt variables)"
+    sys.stdout.write(str("=" * 70) + "\n")
+    sys.stdout.write("Mock Prompt Management API Server" + "\n")
+    sys.stdout.write(str("=" * 70) + "\n")
+    sys.stdout.write("\nStarting server on http://localhost:8080" + "\n")
+    sys.stdout.write(f"\nAvailable prompts: {len(PROMPTS_DB)}" + "\n")
+    for prompt_id in PROMPTS_DB:
+        sys.stdout.write(f"  - {prompt_id}" + "\n")
+    sys.stdout.write(f"\nValid API tokens: {len(VALID_API_TOKENS)}" + "\n")
+    sys.stdout.write("  - test-token-12345" + "\n")
+    sys.stdout.write("  - dev-token-67890" + "\n")
+    sys.stdout.write("  - prod-token-abcdef" + "\n")
+    sys.stdout.write("\nEndpoints:" + "\n")
+    sys.stdout.write("  GET  /beta/litellm_prompt_management?prompt_id=<id>  (Waypoint spec)" + "\n")
+    sys.stdout.write("  GET  /health                                          (health check)" + "\n")
+    sys.stdout.write("  GET  /prompts                                         (list all prompts)" + "\n")
+    sys.stdout.write("  GET  /prompts/{id}/variables                          (get prompt variables)" + "\n")
+    sys.stdout.write("  POST /prompts                                         (create prompt)" + "\n")
+    sys.stdout.write("\nExample usage:" + "\n")
+    sys.stdout.write(
+        '  curl "http://localhost:8080/beta/litellm_prompt_management?prompt_id=hello-world-prompt"' + "\n"
     )
-    print("  POST /prompts                                         (create prompt)")
-    print("\nExample usage:")
-    print(
-        '  curl "http://localhost:8080/beta/litellm_prompt_management?prompt_id=hello-world-prompt"'
-    )
-    print("\nPress CTRL+C to stop the server")
-    print("=" * 70)
+    sys.stdout.write("\nPress CTRL+C to stop the server" + "\n")
+    sys.stdout.write(str("=" * 70) + "\n")
 
     uvicorn.run(app, host="0.0.0.0", port=8080, log_level="info")

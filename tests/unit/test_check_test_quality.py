@@ -33,6 +33,15 @@ def _codes(tmp_path, source):
     return [v.code for v in checker.check_file(snippet)]
 
 
+def test_missing_cli_arguments_reports_usage_on_stderr(capsys: pytest.CaptureFixture[str]) -> None:
+    result: Final = checker.main(())
+    captured: Final = capsys.readouterr()
+
+    assert result == 2
+    assert captured.out == ""
+    assert captured.err == "usage: check_test_quality.py <files-or-dirs>...\n"
+
+
 def test_zero_assert_test_is_flagged(tmp_path):
     assert _codes(tmp_path, "def test_nothing():\n    compute()\n") == ["TQ001"]
 

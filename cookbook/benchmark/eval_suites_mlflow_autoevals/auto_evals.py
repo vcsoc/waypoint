@@ -1,3 +1,5 @@
+import sys
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -14,10 +16,10 @@ response = waypoint.completion(
     model="gpt-3.5-turbo",
     messages=[{"role": "user", "content": question}],
 )
-print(response)
+sys.stdout.write(str(response) + "\n")
 # use the auto eval Factuality() evaluator
 
-print("calling evaluator")
+sys.stdout.write("calling evaluator" + "\n")
 evaluator = Factuality()
 result = evaluator(
     output=response.choices[0]["message"][
@@ -27,4 +29,4 @@ result = evaluator(
     input=question,  # question passed to waypoint.completion
 )
 
-print(result)
+sys.stdout.write(str(result) + "\n")
