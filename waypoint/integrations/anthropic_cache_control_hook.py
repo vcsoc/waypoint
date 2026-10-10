@@ -98,7 +98,14 @@ def configured_injection_points(value: object) -> Sequence[CacheControlInjection
     return tuple(cast(CacheControlInjectionPoint, entry) for entry in value if isinstance(entry, dict))
 
 
-def supports_openai_prompt_cache_breakpoint(model: str) -> bool:
+def supports_openai_prompt_cache_breakpoint(model: str, custom_llm_provider: str | None = None) -> bool:
+    hosted_flag: Final = (
+        _hosted_openai_dialect_flag(model, custom_llm_provider, lambda _: custom_llm_provider)
+        if custom_llm_provider is not None
+        else None
+    )
+    if hosted_flag is not None:
+        return hosted_flag
     model_map_flag: Final = _model_map_prompt_cache_breakpoint_flag(model)
     if model_map_flag is not None:
         return model_map_flag

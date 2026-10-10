@@ -54,6 +54,7 @@ from waypoint.integrations.custom_guardrail import (
     without_server_streaming_classification,
 )
 from waypoint.integrations.custom_logger import CustomLogger
+from waypoint.llms.anthropic.common_utils import is_anthropic_messages_url
 from waypoint.llms.base_llm.managed_resources.utils import (
     resolve_passthrough_managed_id_provider,
 )
@@ -407,7 +408,7 @@ class HttpPassThroughEndpointHelpers(BasePassthroughUtils):
             or ("streamRawPredict") in url
         ):
             return EndpointType.VERTEX_AI
-        elif parsed_url.hostname == "api.anthropic.com":
+        elif is_anthropic_messages_url(url):
             return EndpointType.ANTHROPIC
         elif (
             parsed_url.hostname == "api.openai.com"

@@ -22,6 +22,40 @@ from waypoint.llms.azure_ai.anthropic.count_tokens.transformation import (
 )
 
 
+@pytest.mark.parametrize("config_type", (AnthropicCountTokensConfig, AzureAIAnthropicCountTokensConfig))
+@pytest.mark.parametrize("system", (None, "existing policy", [{"type": "text", "text": "existing policy"}]))
+def test_count_lifts_leading_system_prompts_and_preserves_cache_control(
+    config_type: type[AnthropicCountTokensConfig], system: JsonValue
+) -> None:
+    messages: Final[list[dict[str, JsonValue]]] = [
+        {"role": "system", "content": "first policy", "cache_control": {"type": "ephemeral", "ttl": "1h"}},
+        {"role": "system", "content": [{"type": "text", "text": "second policy"}]},
+        {"role": "user", "content": "question"},
+        {"role": "system", "content": "later policy"},
+    ]
+    original: Final = deepcopy((messages, system))
+    request: Final = config_type().transform_request_to_count_tokens(
+        model="count-fixture", messages=messages, system=system
+    )
+    assert request == {
+        "model": "count-fixture",
+        "messages": [{"role": "user", "content": "question"}, {"role": "system", "content": "later policy"}],
+        "system": [
+            *([{"type": "text", "text": "existing policy"}] if system is not None else []),
+            {"type": "text", "text": "first policy", "cache_control": {"type": "ephemeral", "ttl": "1h"}},
+            {"type": "text", "text": "second policy"},
+        ],
+    }
+    assert (messages, system) == original
+
+
+def test_count_leaves_invalid_system_values_for_provider_validation() -> None:
+    messages: Final[list[dict[str, JsonValue]]] = [{"role": "system", "content": "policy"}]
+    assert AnthropicCountTokensConfig().transform_request_to_count_tokens(
+        model="count-fixture", messages=messages, system=True
+    ) == {"model": "count-fixture", "messages": messages, "system": True}
+
+
 @pytest.mark.parametrize(
     "config_type", (AnthropicCountTokensConfig, AzureAIAnthropicCountTokensConfig)
 )

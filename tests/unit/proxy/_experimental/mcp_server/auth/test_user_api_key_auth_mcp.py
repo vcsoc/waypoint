@@ -2,7 +2,7 @@ import contextlib
 import json
 import os
 from datetime import datetime, timedelta, timezone
-from typing import Literal
+from typing import Final, Literal
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -24,6 +24,78 @@ from waypoint.proxy._types import (
     UserAPIKeyAuth,
 )
 from waypoint.types.agents import AgentCaller
+
+
+@pytest.mark.parametrize("scheme", ("", "Bearer ", "bearer ", "BEARER   ", " Bearer "))
+def test_caller_key_is_scrubbed_from_all_mcp_egress_contexts(scheme: str) -> None:
+    caller_key: Final = "sk-caller-only"
+    upstream_key: Final = "Bearer upstream-only"
+    presented: Final = f"{scheme}{caller_key}"
+    oauth2, raw, mcp_auth, per_server = MCPRequestHandler._scrub_gateway_admission_credentials(
+        admitted=False,
+        admitted_credential=caller_key,
+        oauth2_headers={"Authorization": presented},
+        raw_headers={
+            "x-litellm-api-key": caller_key,
+            "Authorization": presented,
+            "x-mcp-auth": presented,
+            "x-mcp-first-authorization": presented,
+            "x-mcp-second-authorization": upstream_key,
+            "x-trace-id": "trace-fixture",
+        },
+        mcp_auth_header=presented,
+        mcp_server_auth_headers={
+            "first": {"Authorization": presented},
+            "second": {"Authorization": upstream_key},
+            "mixed": {"x-api-key": presented, "x-trace-id": "trace-fixture"},
+        },
+    )
+    assert oauth2 is None
+    assert mcp_auth is None
+    assert raw == {
+        "x-litellm-api-key": caller_key,
+        "x-mcp-second-authorization": upstream_key,
+        "x-trace-id": "trace-fixture",
+    }
+    assert per_server == {
+        "second": {"Authorization": upstream_key},
+        "mixed": {"x-trace-id": "trace-fixture"},
+    }
+
+
+@pytest.mark.parametrize(
+    "header_name",
+    ("x-litellm-api-key", "Authorization", "api-key", "x-api-key", "x-goog-api-key", "Ocp-Apim-Subscription-Key"),
+)
+def test_caller_admission_key_matches_provider_header_precedence(header_name: str) -> None:
+    headers: Final = Headers({header_name: "Bearer sk-caller-only"})
+    assert MCPRequestHandler.caller_admission_credential(
+        headers, UserAPIKeyAuth(api_key="hashed-caller"), custom_key_header_name=None
+    ) == "sk-caller-only"
+    assert MCPRequestHandler.caller_admission_credential(
+        headers, UserAPIKeyAuth(), custom_key_header_name=None
+    ) is None
+
+
+def test_custom_admission_header_does_not_scrub_a_distinct_provider_token() -> None:
+    headers: Final = Headers({"X-Gateway-Key": "sk-caller-only", "Authorization": "Bearer provider-only"})
+    admitted_key: Final = MCPRequestHandler.caller_admission_credential(
+        headers, UserAPIKeyAuth(api_key="hashed-caller"), custom_key_header_name="X-Gateway-Key"
+    )
+    assert admitted_key == "sk-caller-only"
+    assert MCPRequestHandler._scrub_gateway_admission_credentials(
+        admitted=False,
+        admitted_credential=admitted_key,
+        oauth2_headers={"Authorization": "Bearer provider-only"},
+        raw_headers=dict(headers),
+        mcp_auth_header="Bearer provider-only",
+        mcp_server_auth_headers={"first": {"Authorization": "Bearer provider-only"}},
+    ) == (
+        {"Authorization": "Bearer provider-only"},
+        {"authorization": "Bearer provider-only"},
+        "Bearer provider-only",
+        {"first": {"Authorization": "Bearer provider-only"}},
+    )
 
 
 @pytest.mark.asyncio

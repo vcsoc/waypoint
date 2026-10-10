@@ -34,6 +34,37 @@ from waypoint.types.mcp_server.mcp_server_manager import MCPServer
 _OK_TOOL_RESULT: Final = CallToolResult(content=[TextContent(type="text", text='{"result": "ok"}')], is_error=False)
 
 
+@pytest.mark.parametrize("distinct_upstream", (False, True))
+def test_rest_mcp_headers_scrub_only_the_admitted_key(
+    distinct_upstream: bool, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from waypoint.proxy.proxy_server import general_settings
+
+    monkeypatch.delitem(general_settings, "litellm_key_header_name", raising=False)
+    caller_key: Final = "sk-caller-only"
+    forwarded: Final = "Bearer upstream-only" if distinct_upstream else f"Bearer {caller_key}"
+    request: Final = _build_request(
+        headers={
+            "x-litellm-api-key": caller_key,
+            "Authorization": forwarded,
+            "x-mcp-auth": f"Bearer {caller_key}",
+            "x-mcp-first-authorization": f"Bearer {caller_key}",
+            "x-mcp-second-authorization": "Bearer upstream-only",
+        }
+    )
+    mcp_auth, per_server, raw, oauth2 = rest_endpoints._extract_mcp_headers_from_request(
+        request, UserAPIKeyAuth(api_key="hashed-caller")
+    )
+    assert mcp_auth is None
+    assert per_server == {"second": {"Authorization": "Bearer upstream-only"}}
+    assert raw == {
+        "x-litellm-api-key": caller_key,
+        "x-mcp-second-authorization": "Bearer upstream-only",
+        **({"authorization": forwarded} if distinct_upstream else {}),
+    }
+    assert oauth2 == ({"Authorization": forwarded} if distinct_upstream else None)
+
+
 def _rendered_log_message(call):
     message = str(call.args[0])
     values = call.args[1:]

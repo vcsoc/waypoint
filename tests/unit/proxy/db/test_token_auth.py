@@ -11,6 +11,8 @@ a connection URL.
 import base64
 import json
 from datetime import datetime, timezone
+from typing import Final
+from urllib.parse import parse_qs, unquote, urlsplit
 from unittest.mock import patch
 
 import pytest
@@ -28,6 +30,50 @@ from waypoint.proxy.db.token_auth import (
     parse_iam_endpoint_from_url,
     resolve_database_token_auth,
 )
+
+
+@pytest.mark.parametrize(
+    ("host", "override", "expected"),
+    (
+        ("writer.unit.us-east-2.rds.amazonaws.com", None, "us-east-2"),
+        ("reader.proxy-unit.cn-north-1.rds.amazonaws.com.cn", None, "cn-north-1"),
+        ("reader.unit.us-west-2.rds.amazonaws.com", "eu-west-1", "eu-west-1"),
+        ("database.internal", None, "ap-southeast-2"),
+    ),
+)
+def test_rds_token_uses_endpoint_region_or_explicit_override(
+    host: str, override: str | None, expected: str
+) -> None:
+    import boto3
+
+    from waypoint.proxy.auth.rds_iam_token import RdsTokenClient, generate_iam_auth_token
+
+    client: Final = boto3.client(
+        "rds", region_name="ap-southeast-2", aws_access_key_id="unit-key", aws_secret_access_key="unit-secret"
+    )
+    assert isinstance(client, RdsTokenClient)
+    token: Final = generate_iam_auth_token(host, "5432", "unit-user", client=client, region=override)
+    credential: Final = parse_qs(urlsplit("https://" + unquote(token)).query)["X-Amz-Credential"][0]
+    assert credential.split("/")[2] == expected, (
+        "SigV4 credential scope: https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_sigv-create-signed-request.html "
+        "(2026-10-09)"
+    )
+
+
+def test_rds_writer_and_reader_resolve_separate_region_overrides(monkeypatch: pytest.MonkeyPatch) -> None:
+    from waypoint.proxy.db.db_url_settings import DatabaseURLSettings
+
+    monkeypatch.setenv("IAM_TOKEN_DB_AUTH", "true")
+    monkeypatch.delenv("AZURE_POSTGRESQL_AUTH", raising=False)
+    monkeypatch.setenv("AWS_RDS_REGION", " us-east-2 ")
+    monkeypatch.setenv("AWS_RDS_READ_REPLICA_REGION", " eu-west-1 ")
+    settings: Final = DatabaseURLSettings.from_env()
+    assert settings.token_auth() == RdsIamTokenAuth(region="us-east-2")
+    assert settings.token_auth(read_replica=True) == RdsIamTokenAuth(region="eu-west-1")
+    assert resolve_database_token_auth() == settings.token_auth()
+    assert resolve_database_token_auth(read_replica=True) == settings.token_auth(read_replica=True)
+    monkeypatch.delenv("AWS_RDS_READ_REPLICA_REGION")
+    assert resolve_database_token_auth(read_replica=True) == RdsIamTokenAuth(region=None)
 
 
 def _entra_token(exp: int, *, header: str = "eyJhbGciOiJSUzI1NiJ9") -> str:
@@ -68,6 +114,7 @@ def test_rds_mint_delegates_to_the_sigv4_token_generator():
         db_host="writer.aurora.local",
         db_port="5432",
         db_user="litellm_rds",
+        region=None,
     )
 
 
@@ -182,11 +229,14 @@ def test_build_url_leaves_an_already_encoded_component_alone(field, value):
 def test_build_url_inserts_the_token_verbatim():
     """Both providers hand the token back already in wire form, so re-encoding it here
     would double-escape the password."""
-    rds_token = "writer.aurora.local%3A5432%2F%3FAction%3Dconnect%26X-Amz-Date%3D20260820T101500Z"
-
-    assert _endpoint().build_url(rds_token) == (
-        f"postgresql://litellm:{rds_token}@pg.postgres.database.azure.com:5432/litellm_db"
-    )
+    rds_token: Final = "writer.aurora.local%3A5432%2F%3FAction%3Dconnect%26X-Amz-Date%3D20260820T101500Z"
+    endpoint: Final = _endpoint()
+    parsed: Final = urlsplit(endpoint.build_url(rds_token))
+    assert parsed.password == rds_token
+    assert parsed.username == endpoint.user
+    assert parsed.hostname == endpoint.host
+    assert str(parsed.port) == endpoint.port
+    assert parsed.path == f"/{endpoint.name}"
 
 
 @pytest.mark.parametrize(

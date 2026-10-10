@@ -1,7 +1,18 @@
 import os
-from typing import Any, Final
+import re
+from typing import Final, Protocol, runtime_checkable
 
 import httpx
+
+_RDS_HOSTNAME_REGION_PATTERN: Final = re.compile(
+    r"(?:[^.]+\.)+(?P<region>[a-z]{2}(?:-[a-z]+)+-\d+)\.rds\.amazonaws\.com(?:\.cn)?\.?",
+    re.IGNORECASE,
+)
+
+
+@runtime_checkable
+class RdsTokenClient(Protocol):
+    def generate_db_auth_token(self, *, DBHostname: str, Port: str, DBUsername: str, Region: str | None) -> str: ...
 
 
 def init_rds_client(
@@ -151,12 +162,27 @@ def init_rds_client(
     return client
 
 
-def generate_iam_auth_token(db_host, db_port, db_user, client: Any | None = None) -> str:
+def rds_region_from_hostname(db_host: str) -> str | None:
+    match: Final = _RDS_HOSTNAME_REGION_PATTERN.fullmatch(db_host)
+    return None if match is None else match.group("region").lower()
+
+
+def generate_iam_auth_token(
+    db_host: str,
+    db_port: str,
+    db_user: str,
+    client: RdsTokenClient | None = None,
+    *,
+    region: str | None = None,
+) -> str:
     from urllib.parse import quote
 
-    if client is None:
-        boto_client = init_rds_client(
-            aws_region_name=os.getenv("AWS_REGION_NAME"),
+    signing_region: Final = region or rds_region_from_hostname(db_host)
+    boto_client: Final[RdsTokenClient] = (
+        client
+        if client is not None
+        else init_rds_client(
+            aws_region_name=signing_region or os.getenv("AWS_REGION_NAME"),
             aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
             aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
             aws_session_name=os.getenv("AWS_SESSION_NAME"),
@@ -164,10 +190,14 @@ def generate_iam_auth_token(db_host, db_port, db_user, client: Any | None = None
             aws_role_name=os.getenv("AWS_ROLE_NAME", os.getenv("AWS_ROLE_ARN")),
             aws_web_identity_token=os.getenv("AWS_WEB_IDENTITY_TOKEN", os.getenv("AWS_WEB_IDENTITY_TOKEN_FILE")),
         )
-    else:
-        boto_client = client
+    )
 
-    token: Final = boto_client.generate_db_auth_token(DBHostname=db_host, Port=db_port, DBUsername=db_user)
+    token: Final = boto_client.generate_db_auth_token(
+        DBHostname=db_host,
+        Port=db_port,
+        DBUsername=db_user,
+        Region=signing_region,
+    )
     cleaned_token: Final = quote(token, safe="")
 
     return cleaned_token

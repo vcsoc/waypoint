@@ -1,4 +1,5 @@
 import re
+import secrets
 from collections.abc import Mapping, Sequence
 from collections.abc import Set as AbstractSet
 from dataclasses import dataclass
@@ -7,6 +8,7 @@ from types import MappingProxyType
 from typing import TYPE_CHECKING, Final, Literal, cast
 
 from fastapi import HTTPException
+from pydantic import TypeAdapter
 from starlette.datastructures import Headers
 from starlette.requests import Request
 from starlette.types import Scope
@@ -16,6 +18,7 @@ import waypoint
 from waypoint._internal_context import with_service_target
 from waypoint._logging import verbose_logger
 from waypoint.constants import MCP_ALL_TOOLS_WILDCARD
+from waypoint.experimental_mcp_client.client import strip_auth_scheme
 from waypoint.proxy._experimental.mcp_server.catalog import global_manager
 from waypoint.proxy._experimental.mcp_server.oauth_utils import (
     get_passthrough_resource_metadata_url,
@@ -84,6 +87,11 @@ if TYPE_CHECKING:
 
 
 _EMPTY_TOOLSET_GRANTS: Final[Mapping[str, Sequence[str]]] = MappingProxyType({})
+OPTIONAL_STRING_ADAPTER: Final[TypeAdapter[str | None]] = TypeAdapter(str | None)
+
+
+def _normalize_caller_admission_credential(value: str) -> str:
+    return _get_bearer_token_or_received_api_key(strip_auth_scheme(value, "Bearer")).strip()
 
 
 def _as_list(values: Sequence[str] | None) -> list[str] | None:  # mutable-ok: resolver returns a list
@@ -623,11 +631,17 @@ class MCPRequestHandler:
                         bearer_presented=False,
                     )
 
-            # Leak-defense (single chokepoint): a gateway admission credential (session bearer or bridge
-            # envelope) is NEVER a valid upstream token. Scrub it from EVERY egress context so no
-            # client-forwarded, OBO, or passthrough path can send it upstream for replay. Anchored to the
-            # credential SHAPE, so a legitimate upstream/passthrough token is forwarded unchanged.
+            from waypoint.proxy.proxy_server import general_settings
+
             raw_headers = dict(headers)
+            custom_key_header_name: Final = OPTIONAL_STRING_ADAPTER.validate_python(
+                general_settings.get("litellm_key_header_name")
+            )
+            admitted_credential: Final = MCPRequestHandler.caller_admission_credential(
+                headers,
+                validated_user_api_key_auth,
+                custom_key_header_name=custom_key_header_name,
+            )
             (
                 oauth2_headers,
                 raw_headers,
@@ -639,6 +653,7 @@ class MCPRequestHandler:
                 raw_headers=raw_headers,
                 mcp_auth_header=mcp_auth_header,
                 mcp_server_auth_headers=mcp_server_auth_headers,
+                admitted_credential=admitted_credential,
             )
 
             return (
@@ -658,44 +673,57 @@ class MCPRequestHandler:
         return value is not None and (is_session_bearer_shaped(value) or is_bridge_envelope_shaped(value))
 
     @staticmethod
+    def _is_caller_admission_key(value: str | None, admitted_credential: str | None) -> bool:
+        if value is None or admitted_credential is None:
+            return False
+        normalized_value: Final = _normalize_caller_admission_credential(value)
+        normalized_admitted: Final = _normalize_caller_admission_credential(admitted_credential)
+        return bool(
+            normalized_value
+            and normalized_admitted
+            and secrets.compare_digest(normalized_value.encode(), normalized_admitted.encode())
+        )
+
+    @staticmethod
     def _scrub_gateway_admission_credentials(
         admitted: bool,
-        oauth2_headers: dict[str, str] | None,
-        raw_headers: dict[str, str],
+        oauth2_headers: Mapping[str, str] | None,
+        raw_headers: Mapping[str, str],
         mcp_auth_header: str | None,
-        mcp_server_auth_headers: dict[str, dict[str, str]] | None,
+        mcp_server_auth_headers: Mapping[str, Mapping[str, str]] | None,
+        *,
+        admitted_credential: str | None = None,
     ) -> tuple[dict[str, str] | None, dict[str, str], str | None, dict[str, dict[str, str]] | None]:
-        """Remove any gateway admission credential from EVERY egress header context, keyed on the credential
-        SHAPE: top-level ``Authorization`` (oauth2 + raw), the deprecated ``x-mcp-auth``, and per-server
-        ``x-mcp-{alias}-authorization``. A legitimate upstream/passthrough token is never gateway-shaped so
-        it survives (including the real upstream token the bridge arm injects per-server); an admitted
-        subject's top-level Authorization is dropped unconditionally as defense-in-depth."""
-        cred: Final = MCPRequestHandler._is_gateway_admission_credential
+        def is_credential(value: str | None) -> bool:
+            return MCPRequestHandler._is_gateway_admission_credential(
+                value
+            ) or MCPRequestHandler._is_caller_admission_key(value, admitted_credential)
 
-        # 1. Top-level Authorization → oauth2_headers.
+        def scrub_server_headers(headers: Mapping[str, str]) -> Mapping[str, str]:
+            return MappingProxyType({name: value for name, value in headers.items() if not is_credential(value)})
+
         authz: Final = oauth2_headers.get("Authorization") if oauth2_headers else None
-        if admitted or cred(authz):
-            oauth2_headers = None
-
-        # 2. raw_headers: drop the admitted subject's Authorization, and ANY header whose value is a
-        #    gateway credential (covers x-mcp-auth and x-mcp-{alias}-authorization in their raw form).
-        raw_headers = {
-            k: v for k, v in raw_headers.items() if not ((admitted and k.lower() == "authorization") or cred(v))
+        scrubbed_raw_headers: Final = {
+            name: value
+            for name, value in raw_headers.items()
+            if name.lower() == "x-litellm-api-key"
+            or not ((admitted and name.lower() == "authorization") or is_credential(value))
         }
+        stripped_servers: Final = (
+            {alias: scrub_server_headers(headers) for alias, headers in mcp_server_auth_headers.items()}
+            if mcp_server_auth_headers is not None
+            else None
+        )
+        return (
+            None if admitted or is_credential(authz) or oauth2_headers is None else dict(oauth2_headers),
+            scrubbed_raw_headers,
+            None if is_credential(mcp_auth_header) else mcp_auth_header,
+            {alias: dict(headers) for alias, headers in stripped_servers.items() if headers}
+            if stripped_servers is not None
+            else None,
+        )
 
-        # 3. Deprecated x-mcp-auth value.
-        if cred(mcp_auth_header):
-            mcp_auth_header = None
-
-        # 4. Per-server x-mcp-{alias}-authorization values (drop the value, then any now-empty server dict).
-        if mcp_server_auth_headers:
-            stripped: Final = {
-                alias: {h: val for h, val in hdrs.items() if not cred(val)}
-                for alias, hdrs in mcp_server_auth_headers.items()
-            }
-            mcp_server_auth_headers = {alias: hdrs for alias, hdrs in stripped.items() if hdrs}
-
-        return oauth2_headers, raw_headers, mcp_auth_header, mcp_server_auth_headers
+    scrub_gateway_admission_credentials = _scrub_gateway_admission_credentials
 
     @staticmethod
     def extract_target_server_names_from_path(path: str) -> list[str]:
@@ -1552,6 +1580,35 @@ class MCPRequestHandler:
             return auth_header
 
         return None
+
+    @staticmethod
+    def caller_admission_credential(
+        headers: Headers,
+        user_api_key_auth: UserAPIKeyAuth,
+        *,
+        custom_key_header_name: str | None,
+    ) -> str | None:
+        if user_api_key_auth.api_key is None:
+            return None
+        admission_header_names: Final = (
+            MCPRequestHandler.LITELLM_API_KEY_HEADER_NAME_PRIMARY,
+            MCPRequestHandler.LITELLM_API_KEY_HEADER_NAME_SECONDARY,
+            SpecialHeaders.azure_authorization.value,
+            SpecialHeaders.anthropic_authorization.value,
+            SpecialHeaders.google_ai_studio_authorization.value,
+            SpecialHeaders.azure_apim_authorization.value,
+        )
+        admission_key: Final = (
+            headers.get(custom_key_header_name)
+            if custom_key_header_name is not None
+            else next(
+                (value for name in admission_header_names if (value := headers.get(name))),
+                None,
+            )
+        )
+        if admission_key is None:
+            return None
+        return _normalize_caller_admission_credential(admission_key) or None
 
     @staticmethod
     def safe_get_headers_from_scope(scope: Scope) -> Headers:

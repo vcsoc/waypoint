@@ -3253,7 +3253,7 @@ def is_generalized_model_info(model_info: ModelInfo) -> bool:
     return key not in waypoint.model_cost and match_capability_generalizations(key) is not None
 
 
-def _get_builtin_model_info_for_registration(model: str) -> ModelInfo | None:
+def _get_builtin_model_info_for_registration(model: str, custom_llm_provider: str | None) -> ModelInfo | None:
     """Resolve ``model`` to its built-in cost-map entry for registration merging.
 
     Returns ``None`` when the lookup raises or when it resolved via a
@@ -3262,13 +3262,19 @@ def _get_builtin_model_info_for_registration(model: str) -> ModelInfo | None:
     inheritance for prefix-mangled keys.
     """
     try:
-        info: Final = get_model_info(model=model)
+        info: Final = get_model_info(model=model, custom_llm_provider=custom_llm_provider)
     except Exception:
         return None
     return None if is_generalized_model_info(info) else info
 
 
-_runtime_registered_model_cost: Final[dict[str, dict[str, object]]] = {}  # mutable-ok: replayed on reload
+@dataclass(frozen=True, slots=True)
+class _RuntimeModelRegistration:
+    model_cost: Mapping[str, object]
+    custom_llm_provider: str | None
+
+
+_runtime_registered_model_cost: Final[dict[str, _RuntimeModelRegistration]] = {}  # mutable-ok: replayed on reload
 
 
 class _LiveDeploymentReplay:
@@ -3312,8 +3318,12 @@ def reapply_runtime_model_cost_registrations() -> None:
     """
     if _LiveDeploymentReplay.callback is not None:
         _LiveDeploymentReplay.callback()
-    if _runtime_registered_model_cost:
-        register_model(model_cost=dict(_runtime_registered_model_cost))
+    for key, registration in tuple(_runtime_registered_model_cost.items()):
+        register_model(
+            model_cost={key: dict(registration.model_cost)},
+            persist_across_reloads=False,
+            custom_llm_provider=registration.custom_llm_provider,
+        )
 
 
 def cost_map_omits_token_price(*keys: object) -> bool:
@@ -3337,6 +3347,7 @@ def register_model(
     *,
     persist_across_reloads: bool = True,
     warning_display_name: str | None = None,
+    custom_llm_provider: str | None = None,
 ):
     """
     Register new / Override existing models (and their pricing) to specific providers.
@@ -3373,7 +3384,9 @@ def register_model(
     if persist_across_reloads:
         _registrations: Final[Mapping[str, Mapping[str, object]]] = loaded_model_cost
         for _registered_key, _registered_value in _registrations.items():
-            _runtime_registered_model_cost[_registered_key] = dict(_registered_value)
+            _runtime_registered_model_cost[_registered_key] = _RuntimeModelRegistration(
+                model_cost=MappingProxyType(dict(_registered_value)), custom_llm_provider=custom_llm_provider
+            )
 
     _skip_get_model_info_providers: Final = PROVIDERS_THAT_AUTHENTICATE_ON_PROVIDER_INFO
 
@@ -3387,7 +3400,9 @@ def register_model(
             existing_model = waypoint.model_cost.get(key, {})
             model_cost_key = key
         else:
-            builtin_model_info = _get_builtin_model_info_for_registration(model=_key_str)
+            builtin_model_info = _get_builtin_model_info_for_registration(
+                model=_key_str, custom_llm_provider=custom_llm_provider
+            )
             if builtin_model_info is not None:
                 existing_model = cast(dict, builtin_model_info)
                 model_cost_key = existing_model["key"]

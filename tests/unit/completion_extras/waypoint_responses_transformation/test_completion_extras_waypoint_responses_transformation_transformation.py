@@ -4285,6 +4285,52 @@ def test_prompt_cache_breakpoint_read_tolerates_non_string_content_block_keys() 
         ]
 
 
+@pytest.mark.parametrize("enabled", (False, True))
+@pytest.mark.parametrize("use_base_model", (False, True))
+def test_chat_bridge_cache_breakpoint_uses_the_serving_providers_catalog_row(
+    enabled: bool, use_base_model: bool, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setitem(
+        waypoint.model_cost,
+        "unit-bridge-model",
+        {"litellm_provider": "openai", "supports_prompt_cache_breakpoint": not enabled},
+    )
+    monkeypatch.setitem(
+        waypoint.model_cost,
+        "hosted_vllm/unit-bridge-model",
+        {"litellm_provider": "hosted_vllm", "supports_prompt_cache_breakpoint": enabled},
+    )
+    request: Final = LiteLLMResponsesTransformationHandler().transform_request(
+        model="deployment-alias" if use_base_model else "unit-bridge-model",
+        messages=[
+            {
+                "role": "user",
+                "content": [{"type": "text", "text": "Stable prefix", "prompt_cache_breakpoint": {"mode": "explicit"}}],
+            }
+        ],
+        optional_params={},
+        litellm_params={
+            "custom_llm_provider": "hosted_vllm",
+            **({"base_model": "unit-bridge-model"} if use_base_model else {}),
+        },
+        headers={},
+        litellm_logging_obj=Mock(),
+    )
+    assert request["input"] == [
+        {
+            "type": "message",
+            "role": "user",
+            "content": [
+                {
+                    "type": "input_text",
+                    "text": "Stable prefix",
+                    **({"prompt_cache_breakpoint": {"mode": "explicit"}} if enabled else {}),
+                }
+            ],
+        }
+    ]
+
+
 def test_prompt_cache_breakpoints_are_dropped_for_unsupported_models() -> None:
     handler: Final = LiteLLMResponsesTransformationHandler()
     cache_breakpoint: Final = {"mode": "explicit"}

@@ -34,6 +34,67 @@ def _restore_model_cost_entries(original_entries):
     _invalidate_model_cost_lowercase_map()
 
 
+def test_custom_pricing_does_not_merge_into_another_providers_case_insensitive_row(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from waypoint.main import _register_custom_pricing_for_request
+
+    builtin_key: Final = "baseten/unit/Catalog-Model"
+    deployment_id: Final = builtin_key.lower()
+    builtin_row: Final = {
+        "litellm_provider": "baseten",
+        "mode": "chat",
+        "input_cost_per_token": 9e-6,
+        "output_cost_per_token": 12e-6,
+        "cache_read_input_token_cost": 3e-6,
+    }
+    builtin_row_before: Final = copy.deepcopy(builtin_row)
+    monkeypatch.setattr(waypoint, "model_cost", {**waypoint.model_cost, builtin_key: builtin_row})
+    monkeypatch.delitem(waypoint.model_cost, deployment_id, raising=False)
+    monkeypatch.setattr(waypoint, "open_ai_chat_completion_models", set(waypoint.open_ai_chat_completion_models))
+    _invalidate_model_cost_lowercase_map()
+    _register_custom_pricing_for_request(
+        model="unit/Catalog-Model",
+        custom_llm_provider="openai",
+        kwargs={
+            "input_cost_per_token": 2e-6,
+            "output_cost_per_token": 4e-6,
+            "metadata": {"model_info": {"id": deployment_id}},
+        },
+        model_info={"mode": "chat"},
+    )
+    assert waypoint.model_cost[builtin_key] == builtin_row_before
+    assert waypoint.model_cost[deployment_id]["input_cost_per_token"] == 2e-6
+    assert waypoint.model_cost[deployment_id]["output_cost_per_token"] == 4e-6
+    assert waypoint.model_cost[deployment_id].get("litellm_provider") != "baseten"
+
+
+def test_custom_registration_keeps_its_provider_scope_after_a_catalog_reload(monkeypatch: pytest.MonkeyPatch) -> None:
+    import waypoint.utils as waypoint_utils
+
+    builtin_key: Final = "baseten/unit/Scoped-Model"
+    deployment_id: Final = builtin_key.lower()
+    builtin_row: Final = {
+        "litellm_provider": "baseten",
+        "mode": "chat",
+        "input_cost_per_token": 9e-6,
+        "output_cost_per_token": 12e-6,
+    }
+    pricing: Final = {"mode": "chat", "input_cost_per_token": 2e-6, "output_cost_per_token": 4e-6}
+    monkeypatch.setattr(waypoint_utils, "_runtime_registered_model_cost", {})
+    monkeypatch.setattr(waypoint, "open_ai_chat_completion_models", set(waypoint.open_ai_chat_completion_models))
+    monkeypatch.setattr(waypoint, "model_cost", {builtin_key: dict(builtin_row)})
+    _invalidate_model_cost_lowercase_map()
+    waypoint.register_model({deployment_id: pricing}, custom_llm_provider="openai")
+    monkeypatch.setattr(waypoint, "model_cost", {builtin_key: dict(builtin_row)})
+    _invalidate_model_cost_lowercase_map()
+    waypoint_utils.reapply_runtime_model_cost_registrations()
+    assert waypoint.model_cost[builtin_key] == builtin_row
+    assert waypoint.model_cost[deployment_id]["input_cost_per_token"] == pricing["input_cost_per_token"]
+    assert waypoint.model_cost[deployment_id]["output_cost_per_token"] == pricing["output_cost_per_token"]
+    assert waypoint.model_cost[deployment_id].get("litellm_provider") != builtin_row["litellm_provider"]
+
+
 def test_build_custom_pricing_entry_includes_all_kwargs_fields():
     """All CustomPricingLiteLLMParams fields present in kwargs should be
     included in the resulting entry dict."""

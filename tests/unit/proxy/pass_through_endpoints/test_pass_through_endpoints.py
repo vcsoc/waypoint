@@ -79,6 +79,21 @@ PROTOCOL_CONSTRAINED_PASS_THROUGH_ROUTES: Final = MappingProxyType(
 )
 
 
+@pytest.mark.parametrize(
+    ("url", "expected"),
+    (
+        ("https://api.anthropic.com/v1/messages", EndpointType.ANTHROPIC),
+        ("https://gateway.example/v1/messages", EndpointType.ANTHROPIC),
+        ("https://gateway.example/anthropic/v1/messages/?beta=true", EndpointType.ANTHROPIC),
+        ("https://gateway.example/v1/messages/count_tokens", EndpointType.GENERIC),
+        ("https://gateway.example/v1/chat/completions", EndpointType.GENERIC),
+        ("https://api.openai.com/v1/chat/completions", EndpointType.OPENAI),
+    ),
+)
+def test_messages_pass_through_uses_anthropic_frames_on_custom_hosts(url: str, expected: EndpointType) -> None:
+    assert HttpPassThroughEndpointHelpers.get_endpoint_type(url) == expected
+
+
 def test_with_trace_context_without_opentelemetry(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setitem(sys.modules, "waypoint.integrations.otel.plumbing.context", None)
 

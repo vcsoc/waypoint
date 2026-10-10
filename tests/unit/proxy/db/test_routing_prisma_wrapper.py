@@ -697,7 +697,7 @@ def test_writer_get_rds_iam_token_defaults_port_when_unset(monkeypatch, unset_da
 
     captured: Dict[str, Any] = {}
 
-    def fake_generate(db_host=None, db_port=None, db_user=None):
+    def fake_generate(db_host=None, db_port=None, db_user=None, *, region: str | None = None):
         captured["port"] = db_port
         return "TOKEN"
 
@@ -730,7 +730,7 @@ def test_writer_get_rds_iam_token_uses_database_host_env_vars(monkeypatch, unset
 
     captured: Dict[str, Any] = {}
 
-    def fake_generate(db_host=None, db_port=None, db_user=None):
+    def fake_generate(db_host=None, db_port=None, db_user=None, *, region: str | None = None):
         captured["host"] = db_host
         captured["port"] = db_port
         captured["user"] = db_user
@@ -770,7 +770,7 @@ def test_reader_iam_refresh_uses_parsed_endpoint(monkeypatch):
 
     captured: Dict[str, Any] = {}
 
-    def fake_generate(db_host=None, db_port=None, db_user=None):
+    def fake_generate(db_host=None, db_port=None, db_user=None, *, region: str | None = None):
         captured["host"] = db_host
         captured["port"] = db_port
         captured["user"] = db_user

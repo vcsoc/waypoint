@@ -3500,7 +3500,15 @@ async def test_initialize_request_with_existing_session_tracks_new_session():
             patch(  # test-quality-ok: registry is empty in unit tests; key owns one server
                 "waypoint.proxy._experimental.mcp_server.operations._get_allowed_mcp_servers",
                 new_callable=AsyncMock,
-                return_value=[MagicMock()],
+                return_value=[
+                    MCPServer(
+                        server_id="new-server",
+                        name="new-server",
+                        url="http://upstream/mcp",
+                        transport=MCPTransport.http,
+                        auth_type=MCPAuth.none,
+                    )
+                ],
             ),
             patch(
                 "waypoint.proxy._experimental.mcp_server.server._SESSION_MANAGERS_INITIALIZED",
@@ -7192,6 +7200,9 @@ async def test_oauth_passthrough_preflight_preserves_status_contract(probe_statu
                 user_api_key_auth=UserAPIKeyAuth(user_id="admitted-user"),
                 mcp_servers=["passthrough_server"],
                 client_ip=None,
+                oauth2_headers={"Authorization": "Bearer upstream-token"},
+                mcp_server_auth_headers=None,
+                raw_headers={"x-litellm-api-key": "sk-litellm-proxy-key", "Authorization": "Bearer upstream-token"},
             )
             assert result is None
         else:
@@ -7201,6 +7212,9 @@ async def test_oauth_passthrough_preflight_preserves_status_contract(probe_statu
                     user_api_key_auth=UserAPIKeyAuth(user_id="admitted-user"),
                     mcp_servers=["passthrough_server"],
                     client_ip=None,
+                    oauth2_headers={"Authorization": "Bearer upstream-token"},
+                    mcp_server_auth_headers=None,
+                    raw_headers={"x-litellm-api-key": "sk-litellm-proxy-key", "Authorization": "Bearer upstream-token"},
                 )
             assert exc_info.value.status_code == expected_status
             if expected_status == 401:
@@ -7395,6 +7409,99 @@ async def test_delegate_probe_not_fanned_out_to_access_group_members():
         )
 
     probe.assert_not_awaited()
+
+
+@pytest.mark.parametrize("use_openapi", (False, True))
+@pytest.mark.parametrize("gateway_header", ("x-litellm-api-key", "X-LiteLLM-API-Key"))
+def test_gateway_key_header_never_egresses_even_when_requested_as_an_extra_header(
+    use_openapi: bool, gateway_header: str
+) -> None:
+    from waypoint.proxy._experimental.mcp_server.mcp_server_manager import resolve_openapi_tool_auth
+
+    server: Final = MCPServer(
+        server_id="header-fixture",
+        name="header-fixture",
+        url="https://upstream.example/mcp",
+        transport=MCPTransport.http,
+        auth_type=MCPAuth.none,
+        oauth_passthrough=True,
+        extra_headers=["Authorization", gateway_header],
+    )
+    raw_headers: Final = {"authorization": "Bearer provider-token", gateway_header: "sk-caller-only"}
+    caller: Final = UserAPIKeyAuth(api_key="hashed-caller")
+    extra_headers: Final = (
+        resolve_openapi_tool_auth(server, None, None, raw_headers, caller)[1]
+        if use_openapi
+        else mcp_operations._prepare_mcp_server_headers(
+            server=server,
+            mcp_server_auth_headers=None,
+            mcp_auth_header=None,
+            oauth2_headers=None,
+            raw_headers=raw_headers,
+            user_api_key_auth=caller,
+        )[1]
+    )
+    assert extra_headers == {"Authorization": raw_headers["authorization"]}
+    assert raw_headers[gateway_header] == "sk-caller-only"
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("httpx_transport")
+@pytest.mark.parametrize("allowed", (False, True))
+async def test_passthrough_probe_uses_only_each_authorized_servers_scrubbed_token(
+    allowed: bool, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import respx
+
+    from waypoint.proxy._experimental.mcp_server.server import _check_passthrough_upstream_auth
+    from waypoint.proxy._types import LiteLLM_ObjectPermissionTable
+
+    targets: Final = tuple(
+        MCPServer(
+            server_id=name,
+            name=name,
+            alias=name,
+            url=f"https://{name}.example/mcp",
+            transport=MCPTransport.http,
+            auth_type=MCPAuth.none,
+            oauth_passthrough=True,
+            extra_headers=["Authorization", "x-litellm-api-key"],
+        )
+        for name in ("first", "second")
+    )
+    for target in targets:
+        monkeypatch.setitem(mcp_operations.global_mcp_server_manager.registry, target.server_id, target)
+    with respx.mock(assert_all_called=False) as upstream:
+        first: Final = upstream.post(targets[0].url).respond(200)
+        second: Final = upstream.post(targets[1].url).respond(200)
+        result: Final = await _check_passthrough_upstream_auth(
+            scope=_delegate_scope([(b"authorization", b"Bearer sk-caller-only")]),
+            user_api_key_auth=UserAPIKeyAuth(
+                api_key="hashed-caller",
+                object_permission=LiteLLM_ObjectPermissionTable(
+                    object_permission_id="probe-fixture",
+                    mcp_servers=[target.server_id for target in targets] if allowed else [],
+                ),
+            ),
+            mcp_servers=["first", "second"],
+            client_ip=None,
+            oauth2_headers=None,
+            mcp_server_auth_headers={
+                "first": {"Authorization": "Bearer first-token"},
+                "second": {"Authorization": "Bearer second-token"},
+            },
+            raw_headers={"x-litellm-api-key": "sk-caller-only"},
+        )
+    assert result is None
+    assert tuple((str(call.request.url), call.request.headers["Authorization"]) for call in (*first.calls, *second.calls)) == (
+        (("https://first.example/mcp", "Bearer first-token"), ("https://second.example/mcp", "Bearer second-token"))
+        if allowed
+        else ()
+    )
+    assert all(
+        all("sk-caller-only" not in value for value in call.request.headers.values())
+        for call in (*first.calls, *second.calls)
+    )
 
 
 @pytest.mark.asyncio

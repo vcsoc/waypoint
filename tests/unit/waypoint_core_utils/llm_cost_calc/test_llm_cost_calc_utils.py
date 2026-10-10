@@ -1437,6 +1437,40 @@ def test_generic_cost_per_token_tier_without_cache_rates_bills_cache_at_the_tier
         waypoint.model_cost.pop(model, None)
 
 
+@pytest.mark.parametrize("hourly_rate", (0.0, 1.75e-6, None))
+def test_tiered_cache_write_cost_preserves_explicit_zero_hourly_rates(hourly_rate: float | None) -> None:
+    info: Final[ModelInfo] = {
+        "input_cost_per_token": 7e-7,
+        "output_cost_per_token": 3.5e-6,
+        "tiered_pricing": [
+            {
+                "range": [0, 128000],
+                "input_cost_per_token": 7e-7,
+                "output_cost_per_token": 3.5e-6,
+                "cache_creation_input_token_cost": 8.75e-7,
+                "cache_creation_input_token_cost_above_1hr": hourly_rate,
+            }
+        ],
+    }
+    usage: Final = Usage(
+        prompt_tokens=1000,
+        completion_tokens=10,
+        total_tokens=1010,
+        prompt_tokens_details=PromptTokensDetailsWrapper(
+            cache_creation_tokens=800,
+            cache_creation_token_details=CacheCreationTokenDetails(
+                ephemeral_5m_input_tokens=300, ephemeral_1h_input_tokens=500
+            ),
+        ),
+    )
+    prompt_cost, completion_cost = generic_cost_per_token(
+        model="tier-fixture", usage=usage, custom_llm_provider="openrouter", model_info=info
+    )
+    expected_hourly_rate: Final = hourly_rate if hourly_rate is not None else 8.75e-7
+    assert prompt_cost == pytest.approx(200 * 7e-7 + 300 * 8.75e-7 + 500 * expected_hourly_rate)
+    assert completion_cost == pytest.approx(10 * 3.5e-6)
+
+
 def test_generic_cost_per_token_tier_without_a_1hr_cache_rate_bills_the_tier_cache_creation_rate():
     model = "litellm-test-tiered-no-1hr-cache-rate"
     custom_llm_provider = "openrouter"

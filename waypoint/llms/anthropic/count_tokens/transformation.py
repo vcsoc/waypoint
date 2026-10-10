@@ -14,8 +14,13 @@ from waypoint.constants import ANTHROPIC_TOKEN_COUNTING_BETA_VERSION
 from waypoint.llms.anthropic.common_utils import merge_anthropic_beta_headers
 from waypoint.llms.anthropic.wif import resolve_anthropic_base
 from waypoint.types.llms.openai import ChatCompletionImageObject
+from waypoint.waypoint_core_utils.prompt_templates.mid_conversation_system import (
+    anthropic_system_blocks,
+    split_leading_system_run,
+)
 
 _COUNT_REQUEST: Final = TypeAdapter(dict[str, JsonValue])
+_SYSTEM_BLOCKS: Final = TypeAdapter(list[JsonValue])
 _IMAGE_BLOCK: Final = TypeAdapter(ChatCompletionImageObject)
 COUNT_TOKEN_OPTION_NAMES: Final = ("thinking", "tool_choice", "output_config")
 
@@ -46,6 +51,20 @@ def _count_block(block: JsonValue) -> JsonValue:
 
 def _count_content(content: JsonValue) -> JsonValue:
     return [_count_block(block) for block in content] if isinstance(content, list) else content
+
+
+def _lift_leading_system(
+    messages: Sequence[Mapping[str, JsonValue]], system: JsonValue
+) -> tuple[tuple[Mapping[str, JsonValue], ...], JsonValue]:
+    leading, conversation = split_leading_system_run(messages)
+    if not leading or not (system is None or isinstance(system, (str, list))):
+        return tuple(messages), system
+    lifted: Final = _SYSTEM_BLOCKS.validate_python(list(anthropic_system_blocks(leading)))
+    if isinstance(system, list):
+        return conversation, [*system, *lifted]
+    if isinstance(system, str) and system:
+        return conversation, [{"type": "text", "text": system}, *lifted]
+    return conversation, lifted or system
 
 
 class AnthropicCountTokensConfig:
@@ -88,13 +107,20 @@ class AnthropicCountTokensConfig:
         Includes optional system and tools fields for accurate token counting.
         """
         options: Final[Mapping[str, JsonValue]] = optional_params or MappingProxyType({})
+        counted_messages, counted_system = _lift_leading_system(messages, system)
         return _COUNT_REQUEST.validate_python(
             MappingProxyType(
                 {
                     "model": model,
-                    "messages": [{**message, "content": _count_content(message["content"])} for message in messages],
+                    "messages": [
+                        {**message, "content": _count_content(message["content"])} for message in counted_messages
+                    ],
                     **MappingProxyType(
-                        {key: value for key, value in (("system", system), ("tools", tools)) if value is not None}
+                        {
+                            key: value
+                            for key, value in (("system", counted_system), ("tools", tools))
+                            if value is not None
+                        }
                     ),
                     **MappingProxyType(
                         {key: value for key, value in options.items() if key in COUNT_TOKEN_OPTION_NAMES}
