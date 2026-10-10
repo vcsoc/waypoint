@@ -30,6 +30,20 @@ Fourteen targeted regression cases fail against the pre-port implementation, cov
 
 These are local checks, not CI or reviewer acceptance. A local proxy answered its liveness endpoint, but live-provider validation of the new code has not been completed
 
+## CI blockers
+
+Post-push checks for `55121bcb68` are not green. No maintainer-review readiness is claimed
+
+`unit-test` fails in `deploy/lens/test_configure.py::ComposeConfigurationTests.test_restart_and_upgrade_preserve_private_credentials_and_custom_settings` with `KeyError: 'WAYPOINT_VERSION'`. Evidence: Actions run `38009427779`, job `114085729342`
+
+`assert-shard-coverage` reports test directories and files missing from shard configuration, including `tests/test_litellm/integrations` and `tests/test_litellm/tracing`. Evidence: Actions run `38009427975`, job `114085730812`
+
+`assert-ci-coverage` reports stale allowlist entries, uninvoked test paths under `tests/unit/waypoint_core_utils` and `tests/unit/waypoint_proxy_extras`, and an unbuilt cookbook Dockerfile. Evidence: Actions run `38009427819`, job `114085729245`
+
+`rust-lint` fails its formatting check on Rust import ordering. Evidence: Actions run `38009427771`, job `114085729066`
+
+The configuration, deployment-test, and Rust source files named in these failures were not modified by this batch. Raw logs are retained locally and are not committed. Other checks were still running when these failures were inspected
+
 ## Deferred
 
 The remaining inventory is not automatically merged. Catalog pricing, retirement dates, and row removals need independent provider validation. SDK and Python/Rust bridge restructuring must preserve Waypoint's packaging and Rust contracts. UI additions, new providers, policy features, and CI/test relocations are separate work
