@@ -1,3 +1,7 @@
+Always remember to focus on completing my requests as quickly as possible with best practices applied.
+Do not get distracted.
+Always attempt to complete requests and/or actions within 15s.
+
 Do not write comments unless they are any of:
 - absolutely necessary to explain some very complex business logic (in which case, keep it concise and clear)
 - used as an input for tools to read and act on. For example:
