@@ -177,11 +177,9 @@ async def get_marketplace(request: Request, key: str | None = None):
         )
 
 
-# Allowlist for git-subdir paths: one or more segments separated by '/'.
-# Each segment must start with an alphanumeric character and contain only
-# alphanumeric characters, dots, hyphens, and underscores.
-# This implicitly blocks '..', leading '/', backslashes, and percent-encoded sequences.
-_VALID_GIT_SUBDIR_PATH_RE: Final = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9._-]*(/[a-zA-Z0-9][a-zA-Z0-9._-]*)*$")
+_VALID_GIT_SUBDIR_PATH_RE: Final = re.compile(
+    r"(?!\.{1,2}(?:/|$))[a-zA-Z0-9._-]+(?:/(?!\.{1,2}(?:/|$))[a-zA-Z0-9._-]+)*"
+)
 _VALID_SHA256_RE: Final = re.compile(r"^[0-9a-fA-F]{64}$")
 
 
@@ -221,7 +219,7 @@ def _validate_plugin_source(source: Mapping[str, str]) -> None:
                 status_code=400,
                 detail={"error": "git-subdir source must include 'path' field (e.g., 'plugins/plugin-name')"},
             )
-        if not _VALID_GIT_SUBDIR_PATH_RE.match(source["path"]):
+        if not _VALID_GIT_SUBDIR_PATH_RE.fullmatch(source["path"]):
             raise HTTPException(
                 status_code=400,
                 detail={

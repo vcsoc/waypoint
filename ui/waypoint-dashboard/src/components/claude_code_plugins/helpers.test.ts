@@ -43,6 +43,11 @@ describe("formatInstallCommand", () => {
 });
 
 describe("portable installation", () => {
+  it("accepts standard Agent Skills directories when adding a repository subdirectory", () => {
+    expect(parseSkillSource("https://github.com/org/repo", ".agents/skills/review")?.parsed).toEqual({
+      source: "git-subdir", url: "https://github.com/org/repo", path: ".agents/skills/review",
+    });
+  });
   it("installs Git sources with the chosen harness without marketplace registration", () => {
     expect(formatPortableInstallCommand({ source: "github", repo: "org/repo" }, "pi"))
       .toBe(`${PORTABLE_SKILLS_CLI} add 'org/repo' --agent pi --copy`);
@@ -52,10 +57,10 @@ describe("portable installation", () => {
 
   it("preserves subdirectories and uses the repository's default branch", () => {
     const command = formatPortableInstallCommand({
-      source: "git-subdir", url: "https://example.test/org/repo.git", path: "skills/code-review",
+      source: "git-subdir", url: "https://example.test/org/repo.git", path: ".agents/skills/code-review",
     }, "pi");
     expect(command).toContain("git clone --depth 1 -- 'https://example.test/org/repo.git'");
-    expect(command).toContain('"$work/repo"/\'skills/code-review\' --agent pi --copy');
+    expect(command).toContain('"$work/repo"/\'.agents/skills/code-review\' --agent pi --copy');
   });
 
   it("quotes shell metacharacters without altering the source", () => {

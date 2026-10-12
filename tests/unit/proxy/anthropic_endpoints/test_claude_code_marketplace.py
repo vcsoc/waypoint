@@ -5,6 +5,8 @@ Covers the git-subdir and archive source types added alongside the existing gith
 """
 
 import json
+from types import MappingProxyType
+from typing import Final
 
 import pytest
 from fastapi import HTTPException
@@ -428,12 +430,23 @@ async def test_register_plugin_git_subdir_empty_path():
     assert "path" in exc_info.value.detail["error"]
 
 
+@pytest.mark.parametrize("path", [".agents/skills/review", "project/.agents/skills/review"])
+def test_portable_skill_directory_can_be_registered(path: str) -> None:
+    source: Final = MappingProxyType({
+        "source": "git-subdir", "url": "https://github.com/org/repo.git", "path": path,
+    })
+    assert claude_code_marketplace._validate_plugin_source(source) is None
+
+
 @pytest.mark.asyncio
 async def test_register_plugin_git_subdir_path_traversal():
     """git-subdir with path traversal segments raises HTTP 400."""
     for bad_path in [
         "../../etc/passwd",
         "../secrets",
+        "skills/../secrets",
+        "skills/./review",
+        "skills/review\n",
         "/absolute/path",
         "plugins\\..\\..\\secrets",  # backslash traversal
         "plugins/%2e%2e/secrets",  # percent-encoded traversal

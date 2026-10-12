@@ -10,7 +10,7 @@ export interface SkillSourcePreview {
   suggestedName: string;
 }
 
-export const SUBDIR_PATH_REGEX = /^[a-zA-Z0-9][a-zA-Z0-9._-]*(\/[a-zA-Z0-9][a-zA-Z0-9._-]*)*$/;
+export const SUBDIR_PATH_REGEX = /^(?!\.{1,2}(?:\/|$))[a-zA-Z0-9._-]+(?:\/(?!\.{1,2}(?:\/|$))[a-zA-Z0-9._-]+)*$/;
 
 export const normalizeSubPath = (subPath: string): string => subPath.trim().replace(/\/+$/, "");
 
@@ -266,7 +266,7 @@ export const PORTABLE_SKILLS_CLI = "npx --yes skills@1.7.1";
 export type SkillHarness = "pi" | "codex" | "claude-code";
 
 const shellQuote = (value: string): string => `'${value.replaceAll("'", "'\\''")}'`;
-const safeSubdirectory = (value: string): boolean => /^[a-zA-Z0-9][a-zA-Z0-9._-]*(\/[a-zA-Z0-9][a-zA-Z0-9._-]*)*$/.test(value);
+const safeSubdirectory = (value: string): boolean => SUBDIR_PATH_REGEX.test(value);
 const safeGitSource = (value: string): boolean => {
   if (Array.from(value).some((character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127)) return false;
   if (/^git@[a-zA-Z0-9.-]+:[^\s]+$/.test(value)) return true;
