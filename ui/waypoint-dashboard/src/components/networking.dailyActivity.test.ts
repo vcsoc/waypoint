@@ -26,8 +26,8 @@ const captureFetch = () => {
 const requestedUrl = (mockFetch: ReturnType<typeof captureFetch>, callIndex = 0): URL =>
   new URL(String(mockFetch.mock.calls[callIndex][0]), "http://example.com");
 
-const start = new Date("2025-01-05T00:00:00Z");
-const end = new Date("2025-01-31T00:00:00Z");
+const start = new Date(2025, 0, 5);
+const end = new Date(2025, 0, 31);
 
 const req = (overrides: Partial<DailyActivityRequest> = {}): DailyActivityRequest => ({
   accessToken: "sk-key",
