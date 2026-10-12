@@ -2,6 +2,8 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { Plugin } from "./types";
+import userEvent from "@testing-library/user-event";
+import { PORTABLE_SKILLS_CLI, formatInstallCommand } from "./helpers";
 
 import SkillDetail from "./skill_detail";
 
@@ -17,6 +19,32 @@ const buildSkill = (source: Plugin["source"]): Plugin => ({
 });
 
 describe("SkillDetail source", () => {
+  it("installs with Pi by default, changes harness commands, and retains Claude Code setup", async () => {
+    const user = userEvent.setup();
+    const skill = buildSkill({ source: "github", repo: "org/repo" });
+    render(<SkillDetail skill={skill} onBack={vi.fn()} />);
+    await user.click(screen.getByText("How to Use"));
+    expect(screen.getByRole("combobox", { name: "Coding harness" })).toHaveValue("pi");
+    expect(screen.getByText(/Pi discovers project skills/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Copy" }));
+    expect(await navigator.clipboard.readText()).toBe(`${PORTABLE_SKILLS_CLI} add 'org/repo' --agent pi --copy`);
+    await user.selectOptions(screen.getByRole("combobox"), "codex");
+    await user.click(screen.getByRole("button", { name: /Copied|Copy/ }));
+    expect(await navigator.clipboard.readText()).toContain("--agent codex --copy");
+    await user.selectOptions(screen.getByRole("combobox"), "claude-code");
+    expect(screen.getByText(formatInstallCommand(skill))).toBeInTheDocument();
+    await user.click(screen.getByText("See one-time setup"));
+    expect(screen.getByRole("heading", { name: "One-time marketplace setup" })).toBeInTheDocument();
+  });
+
+  it("does not offer unsafe archive installation and explains missing checksums", async () => {
+    const user = userEvent.setup();
+    render(<SkillDetail skill={buildSkill({ source: "archive", url: "http://example.test/skill.zip" })} onBack={vi.fn()} />);
+    await user.click(screen.getByText("How to Use"));
+    expect(screen.getByText(/cannot generate a safe install command/)).toBeInTheDocument();
+    expect(screen.getByText(/No archive checksum/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Copy" })).not.toBeInTheDocument();
+  });
   it("renders a skill whose API metadata is null", () => {
     render(
       <SkillDetail

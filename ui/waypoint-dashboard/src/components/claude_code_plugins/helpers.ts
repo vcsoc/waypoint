@@ -262,6 +262,92 @@ export const buildMarketplaceSettingsSnippet = (proxyOrigin: string): string =>
  */
 export const formatInstallCommand = (plugin: { name: string }): string => `/plugin install ${plugin.name}@litellm`;
 
+export const PORTABLE_SKILLS_CLI = "npx --yes skills@1.7.1";
+export type SkillHarness = "pi" | "codex" | "claude-code";
+
+const shellQuote = (value: string): string => `'${value.replaceAll("'", "'\\''")}'`;
+const safeSubdirectory = (value: string): boolean => /^[a-zA-Z0-9][a-zA-Z0-9._-]*(\/[a-zA-Z0-9][a-zA-Z0-9._-]*)*$/.test(value);
+const safeGitSource = (value: string): boolean => {
+  if (Array.from(value).some((character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127)) return false;
+  if (/^git@[a-zA-Z0-9.-]+:[^\s]+$/.test(value)) return true;
+  try {
+    const url = new URL(value);
+    const secureAuthority = ["https:", "ssh:"].includes(url.protocol) && !!url.hostname && !url.password;
+    const allowedIdentity = url.protocol === "ssh:" || !url.username;
+    return secureAuthority && allowedIdentity;
+  } catch {
+    return false;
+  }
+};
+
+const gitSubdirectoryInstall = (source: Plugin["source"], options: string): string | null => {
+  if (!source.url || !source.path) return null;
+  if (!safeGitSource(source.url) || !safeSubdirectory(source.path)) return null;
+  return [
+    "(", "  set -eu", "  work=$(mktemp -d)", "  trap 'rm -rf -- \"$work\"' EXIT",
+    `  git clone --depth 1 -- ${shellQuote(source.url)} "$work/repo"`,
+    `  ${PORTABLE_SKILLS_CLI} add "$work/repo"/${shellQuote(source.path)} ${options}`, ")",
+  ].join("\n");
+};
+
+const archiveInstall = (source: Plugin["source"], options: string): string | null => {
+  if (!source.url) return null;
+  try {
+    const url = new URL(source.url);
+    const secureAuthority = url.protocol === "https:" && !!url.hostname;
+    const hasCredentials = !!url.username || !!url.password;
+    if (!secureAuthority || hasCredentials) return null;
+  } catch {
+    return null;
+  }
+  if (source.sha256 && !/^[a-fA-F0-9]{64}$/.test(source.sha256)) return null;
+  const verify = source.sha256
+    ? [`  printf '%s  %s\\n' ${shellQuote(source.sha256)} "$work/skill.zip" | sha256sum --check -`]
+    : [];
+  return [
+    "(", "  set -eu", "  work=$(mktemp -d)", "  trap 'rm -rf -- \"$work\"' EXIT",
+    `  curl --fail --location --proto '=https' --proto-redir '=https' --max-filesize 10485760 --output "$work/skill.zip" ${shellQuote(source.url)}`,
+    ...verify,
+    '  python3 - "$work/skill.zip" "$work/skill" <<\'PY\'',
+    "from pathlib import PurePosixPath",
+    "from stat import S_ISLNK",
+    "from zipfile import ZipFile",
+    "import sys",
+    "with ZipFile(sys.argv[1]) as archive:",
+    "    entries = tuple(archive.infolist())",
+    "    if len(entries) > 1000 or sum(entry.file_size for entry in entries) > 33554432:",
+    "        raise SystemExit('Skill archive exceeds extraction limits')",
+    "    names = tuple(PurePosixPath(entry.filename).as_posix() for entry in entries)",
+    "    if len(names) != len(frozenset(names)):",
+    "        raise SystemExit('Skill archive contains duplicate paths')",
+    "    for entry in entries:",
+    "        path = PurePosixPath(entry.filename)",
+    "        if path.is_absolute() or '..' in path.parts or '\\\\' in entry.filename or S_ISLNK(entry.external_attr >> 16):",
+    "            raise SystemExit('Skill archive contains unsafe paths')",
+    "    archive.extractall(sys.argv[2])",
+    "PY",
+    `  ${PORTABLE_SKILLS_CLI} add "$work/skill" ${options}`, ")",
+  ].join("\n");
+};
+
+export const formatPortableInstallCommand = (source: Plugin["source"], harness: SkillHarness): string | null => {
+  const install = `${PORTABLE_SKILLS_CLI} add`;
+  const options = `--agent ${harness} --copy`;
+  switch (source.source) {
+    case "github":
+      return source.repo && /^[a-zA-Z0-9][a-zA-Z0-9_.-]*\/[a-zA-Z0-9_.-]+$/.test(source.repo)
+        ? `${install} ${shellQuote(source.repo)} ${options}` : null;
+    case "url":
+      return source.url && safeGitSource(source.url) ? `${install} ${shellQuote(source.url)} ${options}` : null;
+    case "git-subdir":
+      return gitSubdirectoryInstall(source, options);
+    case "archive":
+      return archiveInstall(source, options);
+    default:
+      return null;
+  }
+};
+
 /**
  * Validate plugin name format (kebab-case)
  * Must be lowercase letters, numbers, and hyphens only

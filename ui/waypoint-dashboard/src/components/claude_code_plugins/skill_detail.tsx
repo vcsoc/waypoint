@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { ArrowLeft, Check, Copy, Link2 } from "lucide-react";
 import { cn } from "@/lib/cva.config";
-import { buildMarketplaceSettingsSnippet, formatInstallCommand, getSourceDisplayText, getSourceLink } from "./helpers";
+import { buildMarketplaceSettingsSnippet, formatInstallCommand, formatPortableInstallCommand, getSourceDisplayText, getSourceLink, type SkillHarness } from "./helpers";
 import { Plugin } from "./types";
 
 const SkillSource: React.FC<{ source: Plugin["source"] }> = ({ source }) => {
@@ -44,6 +44,7 @@ interface SkillDetailProps {
 
 const SkillDetail: React.FC<SkillDetailProps> = ({ skill, onBack }) => {
   const [activeTab, setActiveTab] = useState("overview");
+  const [harness, setHarness] = useState<SkillHarness>("pi");
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   const copyToClipboard = (text: string, key: string) => {
@@ -53,6 +54,7 @@ const SkillDetail: React.FC<SkillDetailProps> = ({ skill, onBack }) => {
   };
 
   const installCommand = formatInstallCommand(skill);
+  const portableCommand = formatPortableInstallCommand(skill.source, harness);
 
   const settingsSnippet = buildMarketplaceSettingsSnippet(
     typeof window !== "undefined" ? window.location.origin : "<proxy-url>",
@@ -180,6 +182,50 @@ const SkillDetail: React.FC<SkillDetailProps> = ({ skill, onBack }) => {
       {activeTab === "usage" && (
         <div className="max-w-[640px]">
           <h2 className="m-0 mb-2 text-lg font-normal text-foreground">Using this skill</h2>
+          <label className="mb-4 block text-sm">
+            Coding harness
+            <select aria-label="Coding harness" value={harness} className="ml-3 rounded border border-border bg-card px-3 py-2" onChange={(event) => {
+              const choice = event.target.value;
+              if (choice === "pi" || choice === "codex" || choice === "claude-code") setHarness(choice);
+            }}>
+              <option value="pi">Pi</option>
+              <option value="codex">Codex</option>
+              <option value="claude-code">Claude Code</option>
+            </select>
+          </label>
+          {harness !== "claude-code" && (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Skills use the Agent Skills format: a folder with SKILL.md and optional scripts, references and assets.
+                Keep instructions independent of the coding harness and review all bundled files before installing
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Run this command in your project directory. Choose the skill when prompted. Nothing needs to be published through Waypoint
+              </p>
+              {portableCommand ? (
+                <div className="overflow-hidden rounded-lg border border-border">
+                  <div className="flex items-center justify-between border-b border-border bg-muted px-4 py-2.5">
+                    <span className="text-[13px] font-medium">Run in your terminal</span>
+                    <button onClick={() => copyToClipboard(portableCommand, "portable-install")} className="text-xs text-info">
+                      {copiedKey === "portable-install" ? "Copied" : "Copy"}
+                    </button>
+                  </div>
+                  <pre className="m-0 overflow-x-auto bg-card px-4 py-3.5 font-mono text-sm">{portableCommand}</pre>
+                </div>
+              ) : <p role="alert">This source cannot generate a safe install command. Use a Git repository or HTTPS skill archive</p>}
+              {skill.source.source === "archive" && !skill.source.sha256 && (
+                <p role="alert" className="text-sm text-muted-foreground">No archive checksum is registered. Verify the source and review the files before installing</p>
+              )}
+              {harness === "pi" ? (
+                <p className="text-sm text-muted-foreground">
+                  Pi discovers project skills in <code>.agents/skills/</code>. Run <code>/reload</code>, then use <code>/skill:name</code> with the name in SKILL.md.
+                  For a manual install, place the reviewed skill folder in <code>.agents/skills/</code> or <code>~/.agents/skills/</code>
+                </p>
+              ) : <p className="text-sm text-muted-foreground">Restart your harness after installation so it discovers the skill</p>}
+              <p className="text-sm text-muted-foreground">Private Git repositories use your existing Git credentials. Installation does not expose your Waypoint API key</p>
+            </div>
+          )}
+          {harness === "claude-code" && <>
           <p className="m-0 mb-6 text-sm leading-relaxed text-muted-foreground">
             Once your proxy is set as a marketplace, enable this skill in Claude Code with one command:
           </p>
@@ -215,9 +261,10 @@ const SkillDetail: React.FC<SkillDetailProps> = ({ skill, onBack }) => {
           <p className="m-0 text-[13px] leading-relaxed text-muted-foreground">
             Don&apos;t have the marketplace configured yet?{" "}
             <span onClick={() => setActiveTab("setup")} className="cursor-pointer text-info">
-              See one-time setup →
+              See one-time setup
             </span>
           </p>
+          </>}
         </div>
       )}
 

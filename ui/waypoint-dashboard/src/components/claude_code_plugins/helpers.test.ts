@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   formatInstallCommand,
+  formatPortableInstallCommand,
+  PORTABLE_SKILLS_CLI,
   validatePluginName,
   getSourceDisplayText,
   getSourceLink,
@@ -37,6 +39,51 @@ describe("formatInstallCommand", () => {
 
   it("uses the plugin name as the identifier", () => {
     expect(formatInstallCommand({ name: "code-review" })).toBe("/plugin install code-review@litellm");
+  });
+});
+
+describe("portable installation", () => {
+  it("installs Git sources with the chosen harness without marketplace registration", () => {
+    expect(formatPortableInstallCommand({ source: "github", repo: "org/repo" }, "pi"))
+      .toBe(`${PORTABLE_SKILLS_CLI} add 'org/repo' --agent pi --copy`);
+    expect(formatPortableInstallCommand({ source: "url", url: "git@example.test:org/repo.git" }, "codex"))
+      .toBe(`${PORTABLE_SKILLS_CLI} add 'git@example.test:org/repo.git' --agent codex --copy`);
+  });
+
+  it("preserves subdirectories and uses the repository's default branch", () => {
+    const command = formatPortableInstallCommand({
+      source: "git-subdir", url: "https://example.test/org/repo.git", path: "skills/code-review",
+    }, "pi");
+    expect(command).toContain("git clone --depth 1 -- 'https://example.test/org/repo.git'");
+    expect(command).toContain('"$work/repo"/\'skills/code-review\' --agent pi --copy');
+  });
+
+  it("quotes shell metacharacters without altering the source", () => {
+    const command = formatPortableInstallCommand({
+      source: "url", url: "https://example.test/skill'$(echo injection).git",
+    }, "pi");
+    expect(command).toContain("'https://example.test/skill'\\''$(echo injection).git'");
+  });
+
+  it.each([
+    { source: "github", repo: "--unsafe/repo" },
+    { source: "git-subdir", url: "git@example.test:repo.git", path: "../private" },
+    { source: "url", url: "https://user:secret@example.test/repo.git" },
+    { source: "url", url: "--upload-pack=unsafe" },
+    { source: "archive", url: "http://example.test/skill.zip" },
+    { source: "archive", url: "https://example.test/skill.zip", sha256: "invalid" },
+  ])("rejects unsafe installation sources %j", (source) => {
+    expect(formatPortableInstallCommand(source, "pi")).toBeNull();
+  });
+
+  it("checks registered archive integrity before bounded extraction and installs a durable copy", () => {
+    const digest = "a".repeat(64);
+    const command = formatPortableInstallCommand({
+      source: "archive", url: "https://example.test/skill.zip", sha256: digest,
+    }, "pi");
+    expect(command).toContain(`printf '%s  %s\\n' '${digest}' "$work/skill.zip" | sha256sum --check -`);
+    expect(command).toContain('"$work/skill" --agent pi --copy');
+    expect(command!.indexOf("sha256sum")).toBeLessThan(command!.indexOf("archive.extractall"));
   });
 });
 
