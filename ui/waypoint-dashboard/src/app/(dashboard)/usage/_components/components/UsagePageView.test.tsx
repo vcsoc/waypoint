@@ -474,6 +474,20 @@ describe("UsagePage", () => {
     } as any);
   });
 
+  it("includes requests written into the current UTC bucket while the local day is still yesterday", async () => {
+    mockUseAuthorized.mockReturnValue(nonAdminSession);
+    mockUserDailyActivityAggregatedCall.mockImplementation((request: { includeCurrentUtcDay?: boolean }) =>
+      Promise.resolve(request.includeCurrentUtcDay ? mockSpendData : {
+        results: [],
+        metadata: { ...mockSpendData.metadata, total_api_requests: 0, total_successful_requests: 0, total_failed_requests: 0, total_tokens: 0 },
+      }),
+    );
+
+    renderWithProviders(<UsagePage {...defaultProps} />);
+
+    await waitFor(() => expect(totalRequestsCell()).toHaveTextContent("1,500"));
+  });
+
   it("should render and fetch usage data on mount", async () => {
     renderWithProviders(<UsagePage {...defaultProps} />);
 
