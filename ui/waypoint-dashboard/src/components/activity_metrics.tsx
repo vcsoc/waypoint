@@ -22,7 +22,7 @@ import React, { type ReactNode, useRef, useState } from "react";
 import { Team } from "./key_team_helpers/key_list";
 import KeyModelUsageView from "./UsagePage/components/KeyModelUsageView";
 import { keyActivityLabel } from "./UsagePage/keyActivityLabel";
-import type { ModelTopKeysResponse } from "./UsagePage/dailyActivityApi";
+import { EMPTY_SPEND_METRICS, type ModelTopKeysResponse } from "./UsagePage/dailyActivityApi";
 import { DailyData, KeyMetricWithMetadata, ModelActivityData, TopModelData } from "./UsagePage/types";
 import { averageResponseTimeMs, formatResponseTime, valueFormatter } from "./UsagePage/utils/value_formatters";
 
@@ -652,7 +652,17 @@ export const formatKeyLabel = (
   return keyAlias;
 };
 
-// Process data function
+const completeActivityDays = (days: readonly DailyData[], activity: ModelActivityData): ModelActivityData => {
+  const existing = new Map(activity.daily_data.map((day) => [day.date, day]));
+  return {
+    ...activity,
+    daily_data: days.toSorted((a, b) => a.date.localeCompare(b.date)).map((day) => existing.get(day.date) ?? {
+      date: day.date,
+      metrics: { ...EMPTY_SPEND_METRICS, avg_response_time_ms: null },
+    }),
+  };
+};
+
 export const processActivityData = (
   dailyActivity: { results: DailyData[] },
   key: "models" | "model_groups" | "api_keys" | "mcp_servers" | "entities",
@@ -764,5 +774,7 @@ export const processActivityData = (
     metrics.daily_data.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   });
 
-  return modelMetrics;
+  return Object.fromEntries(Object.entries(modelMetrics).map(([key, activity]) => [
+    key, completeActivityDays(dailyActivity.results, activity),
+  ]));
 };

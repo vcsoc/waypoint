@@ -187,10 +187,10 @@ const EntityUsage: React.FC<EntityUsageProps> = ({
 
   const spendData = useMemo(
     () => ({
-      results: toDailyData(spendDataRaw),
+      results: toDailyData(spendDataRaw, request),
       metadata: spendDataRaw.metadata ?? EMPTY_DAILY_ACTIVITY_METADATA,
     }),
-    [spendDataRaw],
+    [spendDataRaw, request],
   );
   const summaryMetrics = useMemo(() => overallUsageMetrics(spendData.results, spendData.metadata), [spendData]);
 
@@ -206,10 +206,10 @@ const EntityUsage: React.FC<EntityUsageProps> = ({
 
   const agentSpendData = useMemo(
     () => ({
-      results: toDailyData(agentSpendDataRaw),
+      results: toDailyData(agentSpendDataRaw, agentRequest),
       metadata: agentSpendDataRaw.metadata ?? EMPTY_DAILY_ACTIVITY_METADATA,
     }),
-    [agentSpendDataRaw],
+    [agentSpendDataRaw, agentRequest],
   );
 
   const fetchTopApiKeys = useCallback(
@@ -233,7 +233,7 @@ const EntityUsage: React.FC<EntityUsageProps> = ({
         ? Promise.resolve(undefined)
         : api
             .aggregated({ ...request, apiKey, apiKeyLimit: 1 })
-            .then((response) => keyDetailFromResponse(response, apiKey, teamList)),
+            .then((response) => keyDetailFromResponse(response, apiKey, teamList, request)),
     [api, request, teamList],
   );
 

@@ -201,7 +201,7 @@ const UsagePage: React.FC<UsagePageProps> = ({ teams, organizations }) => {
     enabled: tagDailyRequest !== null && showTopAgents,
     deps: [accessToken, startTime, endTime, showTopAgents],
   });
-  const tagDaily = useMemo(() => toDailyData(tagDailyRaw), [tagDailyRaw]);
+  const tagDaily = useMemo(() => toDailyData(tagDailyRaw, tagDailyRequest), [tagDailyRaw, tagDailyRequest]);
   const [agentActivityTags, setAgentActivityTags] = useState<readonly string[] | undefined>(undefined);
   const openAgentActivity = useCallback((agent: AgentRow) => {
     setAgentActivityTags(agent.tags);
@@ -233,10 +233,10 @@ const UsagePage: React.FC<UsagePageProps> = ({ teams, organizations }) => {
 
   const userSpendData = useMemo(
     () => ({
-      results: toDailyData(aggregatedRaw),
+      results: toDailyData(aggregatedRaw, dailyActivityRequest),
       metadata: aggregatedRaw.metadata ?? EMPTY_DAILY_ACTIVITY_METADATA,
     }),
-    [aggregatedRaw],
+    [aggregatedRaw, dailyActivityRequest],
   );
 
   const loading = aggregatedLoading;
@@ -311,7 +311,7 @@ const UsagePage: React.FC<UsagePageProps> = ({ teams, organizations }) => {
         ? Promise.resolve(undefined)
         : ENTITY_API.user
             .aggregated({ ...dailyActivityRequest, apiKey, apiKeyLimit: 1 })
-            .then((response) => keyDetailFromResponse(response, apiKey, teams)),
+            .then((response) => keyDetailFromResponse(response, apiKey, teams, dailyActivityRequest)),
     [dailyActivityRequest, teams],
   );
 

@@ -8,6 +8,7 @@ import {
   toDailyData,
 } from "./dailyActivityApi";
 import { keyDetailFromResponse, mergeKeyActivityPages, overallUsageMetrics } from "./keyActivityData";
+import { seriesBy } from "@/app/(dashboard)/usage/_components/components/overview/overviewData";
 
 const completeMetrics: components["schemas"]["SpendMetrics"] = {
   api_requests: 2,
@@ -80,6 +81,27 @@ const pageRow = (api_key: string): KeySpendActivityRow => ({
 });
 
 describe("key activity data", () => {
+  it("keeps the entire selected week in overview and key charts when only the last day has records", () => {
+    const range = { startTime: new Date(2026, 8, 21), endTime: new Date(2026, 8, 27) };
+    const rows = toDailyData(aggregatedResponse, range);
+    const dates = ["2026-09-21", "2026-09-22", "2026-09-23", "2026-09-24", "2026-09-25", "2026-09-26", "2026-09-27"];
+    expect(rows.map((row) => row.date)).toEqual(dates);
+    expect(rows.slice(0, -1).every((row) => row.metrics.total_tokens === 0 && row.metrics.api_requests === 0)).toBe(true);
+    expect(rows.at(-1)?.metrics).toEqual(completeMetrics);
+    const chart = seriesBy(rows, "models", "tokens");
+    expect(chart.data.map((day) => day.date)).toEqual(dates);
+    expect(chart.data.slice(0, -1).every((day) => day[chart.keys[0]] === 0)).toBe(true);
+    expect(chart.data.at(-1)?.[chart.keys[0]]).toBe(completeMetrics.total_tokens);
+    const summary = overallUsageMetrics(rows, aggregatedResponse.metadata ?? EMPTY_DAILY_ACTIVITY_METADATA);
+    expect(summary.daily_data.map((day) => day.date)).toEqual(dates);
+    expect(summary.total_tokens).toBe(aggregatedResponse.metadata?.total_tokens);
+    expect(summary.total_requests).toBe(aggregatedResponse.metadata?.total_api_requests);
+    const key = keyDetailFromResponse(aggregatedResponse, "key-hash", [], range);
+    expect(key?.daily_data.map((day) => day.date)).toEqual(dates);
+    expect(key?.daily_data.slice(0, -1).every((day) => day.metrics.api_requests === 0 && day.metrics.avg_response_time_ms === null)).toBe(true);
+    expect(key?.total_requests).toBe(completeMetrics.api_requests);
+    expect(key?.daily_data.at(-1)?.metrics.total_tokens).toBe(completeMetrics.total_tokens);
+  });
   it("builds overall totals from metadata and daily data from complete daily metrics", () => {
     const summary = overallUsageMetrics(
       toDailyData(aggregatedResponse),

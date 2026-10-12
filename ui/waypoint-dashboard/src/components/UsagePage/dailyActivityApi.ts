@@ -1,4 +1,5 @@
 import type { components } from "@/lib/http/schema";
+import { eachDayOfInterval, format } from "date-fns";
 import type { BreakdownMetrics, DailyData, KeyMetadata, KeyMetricWithMetadata, MetricWithMetadata } from "./types";
 
 export type DailyActivityEntity = "user" | "team" | "tag" | "organization" | "customer" | "agent";
@@ -83,8 +84,28 @@ const toMetricMap = (
 ): { [key: string]: MetricWithMetadata } =>
   Object.fromEntries(Object.entries(map ?? {}).map(([key, value]) => [key, toMetric(value)]));
 
-export const toDailyData = (response: DailyActivityAggregatedResponse): DailyData[] =>
-  (response.results ?? []).map((day) => {
+const zeroSpendMetrics: Readonly<DailyData["metrics"]> = {
+  spend: 0, flat_cost: 0, prompt_tokens: 0, completion_tokens: 0, total_tokens: 0,
+  api_requests: 0, successful_requests: 0, failed_requests: 0, cache_read_input_tokens: 0,
+  cache_creation_input_tokens: 0, compression_saved_tokens: 0, compression_savings_spend: 0,
+  prompt_caching_savings_spend: 0, gateway_injected_caching_savings_spend: 0, autorouter_savings_spend: 0,
+  total_response_time_ms: 0, timed_requests: 0,
+};
+export const EMPTY_SPEND_METRICS = Object.freeze(zeroSpendMetrics);
+
+const emptyDay = (date: string): DailyData => ({
+  date,
+  metrics: { ...EMPTY_SPEND_METRICS },
+  breakdown: { models: {}, model_groups: {}, mcp_servers: {}, providers: {}, api_keys: {}, entities: {}, endpoints: {} },
+});
+
+type CalendarRange = Pick<DailyActivityRequest, "startTime" | "endTime">;
+
+export const toDailyData = (
+  response: DailyActivityAggregatedResponse,
+  range?: CalendarRange | null,
+): DailyData[] => {
+  const normalized = (response.results ?? []).map((day) => {
     const breakdown = day.breakdown;
     const normalized: BreakdownMetrics = {
       models: toMetricMap(breakdown?.models),
@@ -99,3 +120,11 @@ export const toDailyData = (response: DailyActivityAggregatedResponse): DailyDat
     };
     return { date: day.date, metrics: day.metrics, breakdown: normalized };
   });
+  if (!range) return normalized;
+  const existing = new Map(normalized.map((day) => [day.date, day]));
+  const dates = new Set([
+    ...existing.keys(),
+    ...eachDayOfInterval({ start: range.startTime, end: range.endTime }).map((day) => format(day, "yyyy-MM-dd")),
+  ]);
+  return [...dates].sort().map((date) => existing.get(date) ?? emptyDay(date));
+};

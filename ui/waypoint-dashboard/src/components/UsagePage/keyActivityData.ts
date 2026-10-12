@@ -1,6 +1,6 @@
 import type { Team } from "@/components/key_team_helpers/key_list";
 import { processActivityData } from "@/components/activity_metrics";
-import type { DailyActivityAggregatedResponse, DailyActivityMetadata, KeySpendActivityRow } from "./dailyActivityApi";
+import type { DailyActivityAggregatedResponse, DailyActivityMetadata, DailyActivityRequest, KeySpendActivityRow } from "./dailyActivityApi";
 import { toDailyData } from "./dailyActivityApi";
 import type { ModelActivityData } from "./types";
 
@@ -58,4 +58,5 @@ export const keyDetailFromResponse = (
   response: DailyActivityAggregatedResponse,
   apiKey: string,
   teams: Team[],
-): ModelActivityData | undefined => processActivityData({ results: toDailyData(response) }, "api_keys", teams)[apiKey];
+  range?: Pick<DailyActivityRequest, "startTime" | "endTime"> | null,
+): ModelActivityData | undefined => processActivityData({ results: toDailyData(response, range) }, "api_keys", teams)[apiKey];
