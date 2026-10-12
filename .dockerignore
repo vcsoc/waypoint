@@ -57,7 +57,7 @@ waypoint-rust/target/
 waypoint/rust_bridge/_native*.so
 *.log
 .env
-.env.local
-.env.licensing
+.env.*
+*.license
 .pi/
 vault/

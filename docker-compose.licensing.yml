@@ -7,8 +7,11 @@ services:
     env_file:
       - .env.licensing
     environment:
-      WAYPOINT_LICENSE_SERVER_URL: http://host.docker.internal:4010
+      WAYPOINT_LICENSE_SERVER_URL: http://waypass-app-1:4010
       WAYPOINT_LICENSE_PUBLIC_KEY_PATH: /run/licenses/public.pem
+    networks:
+      - default
+      - waypass
     volumes:
       - type: bind
         source: ../waypass/secrets/public.pem
@@ -16,3 +19,8 @@ services:
         read_only: true
         bind:
           create_host_path: false
+
+networks:
+  waypass:
+    external: true
+    name: waypass_default
