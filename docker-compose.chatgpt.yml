@@ -44,7 +44,7 @@ services:
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}"
     volumes:
       - type: bind
-        source: ../data/waypoint
+        source: /home/vcsoc/data/waypoint
         target: /var/lib/postgresql/data
         bind:
           create_host_path: false

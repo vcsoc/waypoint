@@ -18,12 +18,12 @@ umask 077
     "$(openssl rand -hex 32)" \
     "$(openssl rand -hex 24)" > .env
 )
-mkdir -p ../data/waypoint "$HOME/.config/waypoint/chatgpt"
+mkdir -p /home/vcsoc/data/waypoint "$HOME/.config/waypoint/chatgpt"
 chmod 700 "$HOME/.config/waypoint/chatgpt"
 docker compose -f docker-compose.chatgpt.yml up -d --wait
 ```
 
-PostgreSQL stores its data in `../data/waypoint`, relative to the repository root. For this checkout, that is `/Users/chris/projects/vcsoc/data/waypoint`. The directory must exist before startup. Existing installations using the old named volume need an offline copy of their data before switching mounts
+PostgreSQL stores its data in `/home/vcsoc/data/waypoint`, outside the repository. The directory must exist before startup. Existing installations using the old named volume need an offline copy of their data before switching mounts
 
 The admin UI is at http://127.0.0.1:4001/ui/. Its username and password are `UI_USERNAME` and `UI_PASSWORD` in your private `.env`. Set `WAYPOINT_PORT` there to use another local port, and update Pi's base URL accordingly
 
@@ -105,4 +105,4 @@ docker compose -f docker-compose.chatgpt.yml logs --tail 100 waypoint
 
 The Pi check should print `PI_WAYPOINT_CHATGPT_OK`. It makes a real model request against your subscription. Gateway cost estimates are not a separate OpenAI API bill
 
-Stop the stack with `docker compose -f docker-compose.chatgpt.yml down`. The database bind mount and host credential directory remain intact, even with `--volumes`. Deleting `../data/waypoint` deletes the database, including its virtual keys
+Stop the stack with `docker compose -f docker-compose.chatgpt.yml down`. The database bind mount and host credential directory remain intact, even with `--volumes`. Deleting `/home/vcsoc/data/waypoint` deletes the database, including its virtual keys

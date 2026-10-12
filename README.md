@@ -6,7 +6,7 @@ Waypoint is an AI gateway and Python SDK. It provides OpenAI-compatible APIs, pr
 
 ## Local services
 
-The local gateway runs at http://localhost:4001/ui/. Waypass runs at http://localhost:4010. PostgreSQL data is stored outside the source checkouts in `../data/waypoint` and `../data/waypass/postgres`
+The local gateway runs at http://localhost:4001/ui/. Waypass runs at http://localhost:4010. PostgreSQL data is stored outside the source checkouts in `/home/vcsoc/data/waypoint` and `../data/waypass/postgres`
 
 Start Waypass from its checkout, then start the gateway from this checkout:
 
