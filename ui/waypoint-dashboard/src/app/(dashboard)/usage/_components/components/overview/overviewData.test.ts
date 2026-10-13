@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { DailyData } from "@/components/UsagePage/types";
-import { bucketSeries, bucketTotals, labelForDate, rollUpBreakdown, seriesBy } from "./overviewData";
+import { bucketSeries, bucketTotals, labelForDate, rollUpBreakdown, seriesBy, withEquivalentSpend } from "./overviewData";
 
 const metrics = (spend: number) => ({
   spend,
@@ -32,6 +32,28 @@ const day = (date: string, total: number, models: Record<string, number>): Daily
       entities: {},
     },
   }) as unknown as DailyData;
+
+describe("API-equivalent spend", () => {
+  it("renders priced model values in daily and weekly series without changing actual spend", () => {
+    const recorded = [day("2026-10-05", 0, { a: 0 }), day("2026-10-06", 0, { a: 0, b: 0 }), day("2026-10-07", 0, {})];
+    const values = [
+      { date: recorded[0].date, model_name: "a", estimated_cost: 2, estimated_requests: 1, missing_rate_requests: 0 },
+      { date: recorded[0].date, model_name: "a", estimated_cost: 3, estimated_requests: 1, missing_rate_requests: 0 },
+      { date: recorded[1].date, model_name: "a", estimated_cost: 5, estimated_requests: 1, missing_rate_requests: 0 },
+      { date: recorded[1].date, model_name: "b", estimated_cost: 7, estimated_requests: 1, missing_rate_requests: 0 },
+    ];
+    const priced = withEquivalentSpend(recorded, values);
+    const daily = seriesBy(priced, "model_groups", "spend");
+    const weekly = bucketSeries(daily, "week");
+    expect(priced.map((row) => row.metrics.spend)).toEqual([5, 12, 0]);
+    expect(priced[0].breakdown.model_groups.a.metrics.spend).toBe(5);
+    expect([...bucketTotals(daily).values()]).toEqual([5, 12, 0]);
+    expect([...bucketTotals(weekly).values()].reduce((sum, value) => sum + value, 0)).toBe(17);
+    expect(daily.keys).toHaveLength(2);
+    expect(recorded.map((row) => row.metrics.spend)).toEqual([0, 0, 0]);
+    expect(recorded[0].breakdown.model_groups.a.metrics.spend).toBe(0);
+  });
+});
 
 describe("seriesBy", () => {
   it("keeps a model named date, label or Other from overwriting the day's own fields or the remainder", () => {

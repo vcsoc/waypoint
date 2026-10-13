@@ -27,6 +27,9 @@ import { BreakdownControls, Leaderboard, useBreakdown, type BreakdownState } fro
 import { cn } from "@/lib/cva.config";
 import { ChartSkeleton, Panel, PANEL_INSET_X, Segmented, Sparkline, Stat } from "./Primitives";
 
+import { useModelPricing, type ModelPricingRange } from "@/components/UsagePage/ModelPricingPanel";
+import { withEquivalentSpend } from "./overviewData";
+
 interface UsageOverviewProps {
   results: readonly DailyData[];
   totals: OverviewTotals;
@@ -38,6 +41,7 @@ interface UsageOverviewProps {
   topAgents: ReactNode;
   providerBreakdown: ReactNode;
   equivalentValue?: ReactNode;
+  pricingRequest?: ModelPricingRange | null;
 }
 
 const METRIC_NOUN: Record<UsageMetric, string> = { spend: "spend", tokens: "tokens", requests: "requests" };
@@ -61,16 +65,24 @@ export default function UsageOverview({
   topAgents,
   providerBreakdown,
   equivalentValue,
+  pricingRequest,
   budget,
 }: UsageOverviewProps) {
   const [state, setState] = useState<BreakdownState>({ metric: "spend", dimension: "model_groups" });
   const [granularity, setGranularity] = useState<Granularity>("day");
   const [scale, setScale] = useState<StackedUsageScale>("linear");
-  const { series: dailySeries, ranking } = useBreakdown(results, state, 8);
+  const pricing = useModelPricing(pricingRequest);
+  const [costBasis, setCostBasis] = useState<"equivalent" | "actual">("equivalent");
+  const equivalentSpend = Boolean(pricingRequest) && state.metric === "spend" && costBasis === "equivalent";
+  const chartResults = useMemo(() => equivalentSpend ? withEquivalentSpend(results, pricing.data?.daily ?? []) : results,
+    [results, equivalentSpend, pricing.data]);
+  const { series: dailySeries, ranking } = useBreakdown(chartResults, state, 8);
   const series = useMemo(() => bucketSeries(dailySeries, granularity), [dailySeries, granularity]);
   const totalsByBucket = useMemo(() => bucketTotals(series), [series]);
   const daily = useMemo(() => dailyTotals(results), [results]);
   const format = (value: number) => formatMetricValue(value, state.metric);
+  const chartPending = loading || (equivalentSpend && pricing.isPending);
+  const pricingFailed = equivalentSpend && pricing.isError;
 
   return (
     <div className="grid gap-3">
@@ -124,10 +136,13 @@ export default function UsageOverview({
       {equivalentValue}
       <Panel
         title="Top models"
-        subtitle={`${granularity === "day" ? "Daily" : "Weekly"} ${METRIC_NOUN[state.metric]}, top 8 stacked`}
+        subtitle={`${granularity === "day" ? "Daily" : "Weekly"} ${equivalentSpend ? "API-equivalent value" : METRIC_NOUN[state.metric]}, top 8 stacked`}
         action={
           <>
             <BreakdownControls state={state} onChange={setState} showDimension={false} />
+            {pricingRequest && state.metric === "spend" && <Segmented label="Cost basis" value={costBasis}
+              options={[{ value: "equivalent", label: "API-equivalent" }, { value: "actual", label: "Actual spend" }]}
+              onChange={setCostBasis} />}
             <Segmented
               label="Bucket size"
               value={granularity}
@@ -140,9 +155,9 @@ export default function UsageOverview({
         bodyClassName="px-0 pt-4 pb-0"
       >
         <div className="px-2 pb-2">
-          {loading ? (
-            <ChartSkeleton className="mx-3 h-[380px] w-auto" />
-          ) : (
+          {chartPending && <ChartSkeleton className="mx-3 h-[380px] w-auto" />}
+          {!chartPending && pricingFailed && <p className="p-5">API-equivalent pricing is unavailable</p>}
+          {!chartPending && !pricingFailed && (
             <StackedUsageChart
               data={series.data}
               series={series.keys}

@@ -54,7 +54,10 @@ beforeAll(() => {
 });
 
 // Mock the networking module
-vi.mock("@/components/UsagePage/ModelPricingPanel", () => ({ ModelPricingPanel: () => null }));
+vi.mock("@/components/UsagePage/ModelPricingPanel", () => ({
+  ModelPricingPanel: () => null,
+  useModelPricing: () => ({ data: undefined, isPending: false, isError: false }),
+}));
 
 vi.mock("@/components/UsagePage/dailyActivityApi", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/components/UsagePage/dailyActivityApi")>(),
@@ -647,6 +650,7 @@ describe("UsagePage", () => {
 
   it("should render the top models chart stacked in the shared usage palette", async () => {
     const { container } = renderWithProviders(<UsagePage {...defaultProps} />);
+    await userEvent.setup().click(screen.getByRole("button", { name: "Actual spend", exact: true }));
 
     await waitFor(() => {
       expect(mockUserDailyActivityAggregatedCall).toHaveBeenCalled();

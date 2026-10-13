@@ -1,7 +1,22 @@
 import type { DailyData, SpendMetrics } from "@/components/UsagePage/types";
 import { stackedUsageColor } from "@/components/shared/charts";
-import { EMPTY_DAILY_ACTIVITY_METADATA, type DailyActivityMetadata } from "@/components/UsagePage/dailyActivityApi";
+import { EMPTY_DAILY_ACTIVITY_METADATA, EMPTY_SPEND_METRICS, type DailyActivityMetadata } from "@/components/UsagePage/dailyActivityApi";
 import type { GatewayActivity } from "../gatewayActivity";
+import type { components } from "@/lib/http/schema";
+
+export function withEquivalentSpend(days: readonly DailyData[], values: readonly components["schemas"]["ModelValue"][]): DailyData[] {
+  return days.map((day) => {
+    const rows = values.filter((row) => row.date === day.date);
+    const names = [...new Set(rows.map((row) => row.model_name))];
+    const modelGroups = Object.fromEntries(names.map((name) => {
+      const recorded = day.breakdown.model_groups[name];
+      const spend = rows.filter((row) => row.model_name === name).reduce((total, row) => total + (row.estimated_cost ?? 0), 0);
+      return [name, { ...recorded, metrics: { ...EMPTY_SPEND_METRICS, ...recorded?.metrics, spend } }];
+    }));
+    const spend = rows.reduce((total, row) => total + (row.estimated_cost ?? 0), 0);
+    return { ...day, metrics: { ...day.metrics, spend }, breakdown: { ...day.breakdown, model_groups: modelGroups } };
+  });
+}
 
 export type BreakdownDimension = "models" | "model_groups" | "providers";
 

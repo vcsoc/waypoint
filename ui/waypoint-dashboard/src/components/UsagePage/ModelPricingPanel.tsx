@@ -15,18 +15,24 @@ const dollars = (value: number) => new Intl.NumberFormat(undefined, {
   style: "currency", currency: "USD", maximumFractionDigits: 4,
 }).format(value);
 
-export function ModelPricingPanel({ accessToken, startTime, endTime }: {
-  accessToken: string; startTime: Date; endTime: Date;
-}) {
-  const timezone = reportingTimezone();
-  const start = formatDate(startTime);
-  const end = formatDate(endTime);
-  const query = useQuery({
-    queryKey: ["model-pricing", accessToken, start, end, timezone],
+export type ModelPricingRange = { accessToken: string; startTime: Date; endTime: Date; timezoneName?: string };
+
+export function useModelPricing(range?: ModelPricingRange | null) {
+  const timezone = range?.timezoneName ?? reportingTimezone();
+  const start = range ? formatDate(range.startTime) : "";
+  const end = range ? formatDate(range.endTime) : "";
+  return useQuery({
+    queryKey: ["model-pricing", range?.accessToken, start, end, timezone],
+    enabled: Boolean(range),
     queryFn: () => client.get<Report>("/model-pricing", {
-      accessToken, query: { start_date: start, end_date: end, timezone_name: timezone },
+      accessToken: range?.accessToken, query: { start_date: start, end_date: end, timezone_name: timezone },
     }),
   });
+}
+
+export function ModelPricingPanel(range: ModelPricingRange) {
+  const { startTime, endTime } = range;
+  const query = useModelPricing(range);
   if (query.isPending) return <Card className="p-5">Loading API-equivalent pricing...</Card>;
   if (query.isError || !query.data) return <Card className="p-5">API-equivalent pricing is unavailable</Card>;
   const report = query.data;

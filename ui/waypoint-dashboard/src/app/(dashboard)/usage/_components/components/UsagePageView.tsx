@@ -390,6 +390,7 @@ const UsagePage: React.FC<UsagePageProps> = ({ teams, organizations }) => {
                     requestCountsPending={requestCountsPending}
                     budget={currentUser?.max_budget ?? null}
                     equivalentValue={showEquivalentPricing && pricingRange ? <ModelPricingPanel {...pricingRange} /> : null}
+                    pricingRequest={showEquivalentPricing ? pricingRange : null}
                     topKeys={
                       <TopKeyView
                         topKeys={topKeys}
