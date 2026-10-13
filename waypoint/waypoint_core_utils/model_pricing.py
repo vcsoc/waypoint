@@ -3,10 +3,13 @@ from __future__ import annotations
 import math
 import re
 from collections.abc import Mapping
+from functools import cache
 from types import MappingProxyType
 from typing import Final, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, TypeAdapter
+
+from waypoint.waypoint_core_utils.get_model_cost_map import GetModelCostMap
 
 _LOCAL_REFERENCES: Final = MappingProxyType({
     "qwen3.5:2b": "openrouter/qwen/qwen3.5-9b",
@@ -15,6 +18,7 @@ _LOCAL_REFERENCES: Final = MappingProxyType({
 })
 _JSON_MAPPING: Final = TypeAdapter(Mapping[str, JsonValue])
 _INFO_MAPPING: Final = TypeAdapter(Mapping[str, object])
+_CATALOG_MAPPING: Final = TypeAdapter(Mapping[str, Mapping[str, object]])
 _THRESHOLD: Final = re.compile(r"^input_cost_per_token_above_(\d+)(k|m)?_tokens$")
 
 
@@ -106,13 +110,19 @@ def _tier(record: Mapping[str, object], above: int = 0, suffix: str = "") -> Pri
     )
 
 
+@cache
+def bundled_reference_rates() -> Mapping[str, Mapping[str, object]]:
+    bundled: Final = _CATALOG_MAPPING.validate_python(GetModelCostMap.load_local_model_cost_map_with_revision().model_cost_map)
+    return MappingProxyType({key: bundled[key] for key in frozenset(_LOCAL_REFERENCES.values()) if key in bundled})
+
+
 def model_pricing(deployment: PricingDeployment, catalog: Mapping[str, Mapping[str, object]]) -> ModelPricing:
     model: Final = deployment.litellm_params.model
     local_model: Final = model.removeprefix("ollama_chat/").removeprefix("ollama/")
     reference: Final = _LOCAL_REFERENCES.get(local_model)
     candidate: Final = reference or model.removeprefix("chatgpt/")
     catalog_model: Final = candidate if reference or candidate in catalog else candidate.partition("/")[2] or candidate
-    record: Final = catalog.get(catalog_model, {})
+    record: Final = catalog[catalog_model] if catalog_model in catalog else bundled_reference_rates().get(catalog_model, {})
     standard: Final = _tier(record)
     higher: Final = tuple(
         (int(match[1]) * {None: 1, "k": 1000, "m": 1000000}[match[2]], key.removeprefix("input_cost_per_token"))

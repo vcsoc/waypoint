@@ -8,6 +8,7 @@ from waypoint.waypoint_core_utils.model_pricing import (
     PricingDeployment,
     PricingParams,
     PricingUsage,
+    bundled_reference_rates,
     estimate_value,
     model_pricing,
     with_model_pricing,
@@ -76,6 +77,15 @@ def test_missing_or_invalid_pricing_is_unknown_not_free(invalid: object) -> None
     assert quote.basis == "unavailable"
     assert result.estimated_cost is None
     assert result.missing_rate_requests == usage.requests
+
+
+@pytest.mark.parametrize("model", ("qwen3.5:2b", "qwen3.5:4b", "gemma3:4b"))
+def test_local_prices_survive_a_remote_catalog_missing_the_hosted_reference(model: str) -> None:
+    quote: Final = model_pricing(PricingDeployment(model_name="local", litellm_params=PricingParams(model=f"ollama_chat/{model}")), {})
+    record: Final = bundled_reference_rates()[quote.catalog_model]
+    assert quote.tiers[0].input_per_token == record["input_cost_per_token"]
+    assert quote.tiers[0].output_per_token == record["output_cost_per_token"]
+    assert quote.source == record["source"]
 
 
 def test_enrichment_preserves_actual_rates_and_does_not_mutate_config() -> None:
