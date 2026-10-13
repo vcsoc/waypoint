@@ -54,6 +54,8 @@ beforeAll(() => {
 });
 
 // Mock the networking module
+vi.mock("@/components/UsagePage/ModelPricingPanel", () => ({ ModelPricingPanel: () => null }));
+
 vi.mock("@/components/UsagePage/dailyActivityApi", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/components/UsagePage/dailyActivityApi")>(),
   reportingTimezone: vi.fn(() => "UTC"),

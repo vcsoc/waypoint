@@ -253,15 +253,17 @@ def test_v1_model_info_specific_id_happy(client, auth_as, configured_router, pat
         response = client.get(path, params={"litellm_model_id": "abc"})
     assert response.status_code == 200
     body = normalize(response.json())
-    assert body == {
-        "data": [
-            {
-                "model_name": "gpt-4",
-                "litellm_params": {"model": "gpt-4"},
-                "model_info": {"id": "<VOLATILE>", "db_model": False},
-            }
-        ]
-    }
+    entry: Final = body["data"][0]
+    info: Final = entry["model_info"]
+    pricing: Final = info["api_equivalent_pricing"]
+    assert entry["model_name"] == "gpt-4"
+    assert entry["litellm_params"]["model"] == "gpt-4"
+    assert info["id"] == "<VOLATILE>"
+    assert info["db_model"] is False
+    assert pricing["model_name"] == entry["model_name"]
+    assert pricing["catalog_model"] == entry["litellm_params"]["model"]
+    assert pricing["tiers"][0]["input_per_token"] == waypoint.model_cost[pricing["catalog_model"]]["input_cost_per_token"]
+    assert pricing["tiers"][0]["output_per_token"] == waypoint.model_cost[pricing["catalog_model"]]["output_cost_per_token"]
 
 
 @pytest.mark.parametrize("path", ["/v1/model/info", "/model/info"])

@@ -37,6 +37,7 @@ interface UsageOverviewProps {
   gatewayByEndpoint: ReactNode;
   topAgents: ReactNode;
   providerBreakdown: ReactNode;
+  equivalentValue?: ReactNode;
 }
 
 const METRIC_NOUN: Record<UsageMetric, string> = { spend: "spend", tokens: "tokens", requests: "requests" };
@@ -59,6 +60,7 @@ export default function UsageOverview({
   gatewayByEndpoint,
   topAgents,
   providerBreakdown,
+  equivalentValue,
   budget,
 }: UsageOverviewProps) {
   const [state, setState] = useState<BreakdownState>({ metric: "spend", dimension: "model_groups" });
@@ -119,6 +121,7 @@ export default function UsageOverview({
         </StatCell>
       </div>
 
+      {equivalentValue}
       <Panel
         title="Top models"
         subtitle={`${granularity === "day" ? "Daily" : "Weekly"} ${METRIC_NOUN[state.metric]}, top 8 stacked`}

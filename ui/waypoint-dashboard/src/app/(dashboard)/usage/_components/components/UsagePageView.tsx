@@ -66,6 +66,7 @@ import SpendByProvider from "./EntityUsage/SpendByProvider";
 import { useTagSummary } from "@/app/(dashboard)/hooks/tags/useTagSummary";
 import { Panel } from "./overview/Primitives";
 import UsageOverview from "./overview/UsageOverview";
+import { ModelPricingPanel } from "@/components/UsagePage/ModelPricingPanel";
 
 interface UsagePageProps {
   teams: Team[];
@@ -129,6 +130,8 @@ const UsagePage: React.FC<UsagePageProps> = ({ teams, organizations }) => {
 
   const startTime = useMemo(() => (dateValue.from ? new Date(dateValue.from) : null), [dateValue.from]);
   const endTime = useMemo(() => (dateValue.to ? new Date(dateValue.to) : null), [dateValue.to]);
+  const showEquivalentPricing = isAdmin && !effectiveUserId;
+  const pricingRange = accessToken && startTime && endTime ? { accessToken, startTime, endTime } : null;
   // Stamped and selected during render like the request tiles below: the tag
   // filter reads "no tags" from an empty list, so a list left over from the
   // previous range would state that about a range nobody has measured yet.
@@ -386,6 +389,7 @@ const UsagePage: React.FC<UsagePageProps> = ({ teams, organizations }) => {
                     loading={loading}
                     requestCountsPending={requestCountsPending}
                     budget={currentUser?.max_budget ?? null}
+                    equivalentValue={showEquivalentPricing && pricingRange ? <ModelPricingPanel {...pricingRange} /> : null}
                     topKeys={
                       <TopKeyView
                         topKeys={topKeys}

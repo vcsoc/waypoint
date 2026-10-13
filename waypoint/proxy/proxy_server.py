@@ -666,6 +666,7 @@ from waypoint.proxy.management_endpoints.model_management_endpoints import (  # 
 from waypoint.proxy.management_endpoints.model_management_endpoints import (
     router as model_management_router,
 )
+from waypoint.proxy.management_endpoints.model_pricing_endpoints import router as model_pricing_router
 from waypoint.proxy.management_endpoints.organization_endpoints import (
     router as organization_router,
 )
@@ -742,6 +743,7 @@ from waypoint.waypoint_core_utils.core_helpers import (
     get_parent_otel_span_from_kwargs,
 )
 from waypoint.waypoint_core_utils.credential_accessor import CredentialAccessor
+from waypoint.waypoint_core_utils.model_pricing import PricingCatalog, with_model_pricing
 from waypoint.waypoint_core_utils.realtime_errors import (
     close_after_upstream_handshake_refusal,
     realtime_error_event,
@@ -15861,9 +15863,11 @@ async def model_info_v2(
 
     # Translate `model_name` to the public name for team-scoped rows.
     all_models = [_translate_model_name_for_response(m) for m in all_models]
+    pricing_catalog: Final = PricingCatalog.model_validate(vars(waypoint)).model_cost
+    priced_models: Final = [dict(with_model_pricing(entry, pricing_catalog)) for entry in all_models]
 
     return _paginate_models_response(
-        all_models=all_models,
+        all_models=priced_models,
         page=page,
         size=size,
         total_count=search_total_count,
@@ -16384,8 +16388,11 @@ def _get_proxy_model_info(model: dict) -> dict:
 
 
 def _model_info_json_response(data: Sequence[Mapping[str, object]] | Mapping[str, object]) -> Response:
+    catalog: Final = PricingCatalog.model_validate(vars(waypoint)).model_cost
+    enriched: Final = (with_model_pricing(data, catalog) if isinstance(data, Mapping)
+                       else tuple(with_model_pricing(entry, catalog) for entry in data))
     return Response(
-        content=orjson.dumps({"data": data}, default=jsonable_encoder, option=orjson.OPT_NON_STR_KEYS),
+        content=orjson.dumps({"data": enriched}, default=jsonable_encoder, option=orjson.OPT_NON_STR_KEYS),
         media_type="application/json",
     )
 
@@ -20321,6 +20328,7 @@ app.include_router(health_router)
 app.include_router(key_management_router)
 app.include_router(internal_user_router)
 app.include_router(daily_activity_router)
+app.include_router(model_pricing_router)
 app.include_router(password_management_router)
 app.include_router(session_management_router)
 app.include_router(team_router)

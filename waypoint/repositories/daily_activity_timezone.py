@@ -33,6 +33,10 @@ def _first_number(paths: tuple[str, ...]) -> str:
     return "COALESCE(" + ", ".join(f"NULLIF(({_number(path)}), 0)" for path in paths) + ", 0)"
 
 
+def cache_read_tokens_sql() -> str:
+    return _first_number(("usage_object,cache_read_input_tokens", "usage_object,prompt_tokens_details,cached_tokens"))
+
+
 def localize_daily_query(scope: DailyActivityScope, query: SqlQuery) -> SqlQuery:
     if scope.timezone_name is None or scope.timezone_name == "UTC":
         return query
@@ -49,9 +53,7 @@ def localize_daily_query(scope: DailyActivityScope, query: SqlQuery) -> SqlQuery
         if scope.table is DailyActivityTable.TAG else ""
     )
     tag_select: Final = "tags.tag" if scope.table is DailyActivityTable.TAG else "NULL::text"
-    cache_read: Final = _first_number((
-        "usage_object,cache_read_input_tokens", "usage_object,prompt_tokens_details,cached_tokens",
-    ))
+    cache_read: Final = cache_read_tokens_sql()
     cache_write: Final = _first_number((
         "usage_object,cache_creation_input_tokens", "usage_object,prompt_tokens_details,cache_write_tokens",
         "usage_object,prompt_tokens_details,cache_creation_tokens",

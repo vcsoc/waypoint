@@ -10219,6 +10219,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/model-pricing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Model Pricing */
+        get: operations["get_model_pricing_model_pricing_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/model/block": {
         parameters: {
             query?: never;
@@ -39202,6 +39219,56 @@ export interface components {
             /** Model Name */
             model_name: string;
         };
+        /** ModelPricing */
+        ModelPricing: {
+            /**
+             * Basis
+             * @enum {string}
+             */
+            basis: "published_api_rate" | "hosted_model_equivalent" | "hosted_qwen_benchmark" | "unavailable";
+            /** Catalog Model */
+            catalog_model: string;
+            /**
+             * Currency
+             * @default USD
+             * @constant
+             */
+            currency: "USD";
+            /** Model Name */
+            model_name: string;
+            /** Source */
+            source: string | null;
+            /** Tiers */
+            tiers: components["schemas"]["PricingTier"][];
+        };
+        /** ModelPricingReport */
+        ModelPricingReport: {
+            /**
+             * Currency
+             * @default USD
+             * @constant
+             */
+            currency: "USD";
+            /**
+             * Daily
+             * @default []
+             */
+            daily: components["schemas"]["ModelValue"][];
+            /** Estimated Cost */
+            estimated_cost?: number | null;
+            /**
+             * Estimated Requests
+             * @default 0
+             */
+            estimated_requests: number;
+            /**
+             * Missing Rate Requests
+             * @default 0
+             */
+            missing_rate_requests: number;
+            /** Pricing */
+            pricing: components["schemas"]["ModelPricing"][];
+        };
         /** ModelRequest */
         ModelRequest: {
             /**
@@ -39254,6 +39321,19 @@ export interface components {
             by_model_group: boolean;
             /** Model */
             model: string;
+        };
+        /** ModelValue */
+        ModelValue: {
+            /** Date */
+            date: string;
+            /** Estimated Cost */
+            estimated_cost: number | null;
+            /** Estimated Requests */
+            estimated_requests: number;
+            /** Missing Rate Requests */
+            missing_rate_requests: number;
+            /** Model Name */
+            model_name: string;
         };
         /**
          * Move
@@ -41989,6 +42069,20 @@ export interface components {
              */
             offset: number;
             selection: components["schemas"]["ActivitySelection"];
+        };
+        /** PricingTier */
+        PricingTier: {
+            /**
+             * Above Tokens
+             * @default 0
+             */
+            above_tokens: number;
+            /** Cached Input Per Token */
+            cached_input_per_token: number;
+            /** Input Per Token */
+            input_per_token: number;
+            /** Output Per Token */
+            output_per_token: number;
         };
         /** Progress */
         Progress: {
@@ -66073,6 +66167,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ModelInsightTasksResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_model_pricing_model_pricing_get: {
+        parameters: {
+            query?: {
+                start_date?: string | null;
+                end_date?: string | null;
+                timezone_name?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelPricingReport"];
                 };
             };
             /** @description Validation Error */
