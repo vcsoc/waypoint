@@ -4,6 +4,7 @@ import { Page } from "@/components/shared/Page";
 import React from "react";
 import { ArrowDownRight, ArrowUpRight, BarChart3, Minus } from "lucide-react";
 import { StackedUsageChart } from "@/components/shared/charts";
+import { useModelPricing, type ModelPricingRange } from "@/components/UsagePage/ModelPricingPanel";
 
 import { apiClient } from "@/components/networking";
 import { extractErrorMessage } from "@/utils/errorUtils";
@@ -15,6 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   buildBucketTotals,
+  withEquivalentModelCosts,
   buildSeries,
   formatMetric,
   Granularity,
@@ -67,12 +69,19 @@ const RankingRow = ({ model, rank }: { model: RankedModel; rank: number }) => (
   </li>
 );
 
+function pricingRangeFor(data: ModelInsightsResponse | null, token: string | null, enabled: boolean): ModelPricingRange | null {
+  if (!data || !token || !enabled) return null;
+  return { accessToken: token, startTime: new Date(`${data.start_date}T00:00:00`),
+    endTime: new Date(`${data.end_date}T00:00:00`), timezoneName: "UTC" };
+}
+
 export default function ModelInsightsView({ accessToken }: { accessToken: string | null }) {
   const [loaded, setLoaded] = React.useState<{ metric: Metric; response: ModelInsightsResponse } | null>(null);
   const [metric, setMetric] = React.useState<Metric>("tokens");
   const [scale, setScale] = React.useState<Scale>("linear");
   const [granularity, setGranularity] = React.useState<Granularity>("day");
   const [error, setError] = React.useState<string | null>(null);
+  const [costBasis, setCostBasis] = React.useState("equivalent");
 
   React.useEffect(() => {
     if (!accessToken) return;
@@ -92,8 +101,13 @@ export default function ModelInsightsView({ accessToken }: { accessToken: string
     };
   }, [accessToken, metric]);
 
-  const data = loaded?.response ?? null;
+  const recorded = loaded?.response ?? null;
   const shown = loaded?.metric ?? metric;
+  const equivalentSpend = shown === "spend" && costBasis === "equivalent";
+  const pricingRange = pricingRangeFor(recorded, accessToken, equivalentSpend);
+  const pricing = useModelPricing(pricingRange);
+  const data = React.useMemo(() => recorded && equivalentSpend && pricing.data
+    ? withEquivalentModelCosts(recorded, pricing.data) : recorded, [recorded, equivalentSpend, pricing.data]);
   const isStale = loaded !== null && loaded.metric !== metric;
   const range = React.useMemo(() => ({ start: data?.start_date ?? "", end: data?.end_date ?? "" }), [data]);
   const models = React.useMemo(() => (data ? modelOrder(data.daily, shown) : []), [data, shown]);
@@ -110,18 +124,18 @@ export default function ModelInsightsView({ accessToken }: { accessToken: string
     [data, shown, range],
   );
 
-  if (error) {
+  if (error || (equivalentSpend && pricing.isError)) {
     return (
       <div className="p-8">
         <Alert variant="destructive">
           <AlertTitle>Could not load model insights</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription>{error ?? "API-equivalent pricing is unavailable"}</AlertDescription>
         </Alert>
       </div>
     );
   }
 
-  if (!data) {
+  if (!data || (equivalentSpend && pricing.isPending)) {
     return (
       <div className="space-y-6 p-8">
         <Skeleton className="h-16 w-96" />
@@ -147,8 +161,11 @@ export default function ModelInsightsView({ accessToken }: { accessToken: string
           <div>
             <CardTitle>Top models</CardTitle>
             <CardDescription>
-              {GRANULARITY_LABELS[granularity]} {METRIC_LABELS[shown]} across your gateway
+              {GRANULARITY_LABELS[granularity]} {equivalentSpend ? "API-equivalent value" : METRIC_LABELS[shown]} across your gateway
             </CardDescription>
+            {equivalentSpend && <p className="mt-1 text-xs text-muted-foreground">
+              Current API rates, with hosted Qwen 3.5 9B as a benchmark for local Qwen. Actual spend is unchanged
+            </p>}
           </div>
           <div className="flex items-center gap-3">
             <Tabs value={metric} onValueChange={(value) => setMetric(value as Metric)}>
@@ -160,6 +177,10 @@ export default function ModelInsightsView({ accessToken }: { accessToken: string
                 ))}
               </TabsList>
             </Tabs>
+            {shown === "spend" && <Tabs value={costBasis} onValueChange={setCostBasis}>
+              <TabsList aria-label="Cost basis"><TabsTrigger value="equivalent">API-equivalent</TabsTrigger>
+                <TabsTrigger value="actual">Actual spend</TabsTrigger></TabsList>
+            </Tabs>}
             <Tabs value={granularity} onValueChange={(value) => setGranularity(value as Granularity)}>
               <TabsList aria-label="Bucket size">
                 {GRANULARITIES.map((value) => (
@@ -197,7 +218,7 @@ export default function ModelInsightsView({ accessToken }: { accessToken: string
         <CardHeader>
           <CardTitle>Leaderboard</CardTitle>
           <CardDescription>
-            Share of {METRIC_LABELS[shown]}, with the change between the first and second half of the period
+            Share of {equivalentSpend ? "API-equivalent value" : METRIC_LABELS[shown]}, with the change between the first and second half of the period
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-x-12 md:grid-cols-2">

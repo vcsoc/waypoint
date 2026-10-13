@@ -50,6 +50,24 @@ describe("SpendByProvider", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
+  });
+
+  it("retains both provider filters after remount and retains turning them off", () => {
+    const props = { loading: false, isDateChanging: false, providerSpend: mockProviderSpend };
+    const first = render(<SpendByProvider {...props} />);
+    fireEvent.click(screen.getAllByRole("switch")[0]);
+    fireEvent.click(screen.getAllByRole("switch")[1]);
+    first.unmount();
+    const second = render(<SpendByProvider {...props} />);
+    expect(screen.getByTestId("provider-logo-google")).toBeInTheDocument();
+    expect(screen.getByTestId("provider-logo-unknown")).toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole("switch")[0]);
+    fireEvent.click(screen.getAllByRole("switch")[1]);
+    second.unmount();
+    render(<SpendByProvider {...props} />);
+    expect(screen.queryByTestId("provider-logo-google")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("provider-logo-unknown")).not.toBeInTheDocument();
   });
 
   it("should render", () => {

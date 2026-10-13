@@ -6,6 +6,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import ModelInsightsView from "./ModelInsightsView";
 import { apiClient } from "@/components/networking";
 
+const pricing = vi.hoisted(() => vi.fn());
+vi.mock("@/components/UsagePage/ModelPricingPanel", () => ({ useModelPricing: pricing }));
 vi.mock("@/components/networking", () => ({ apiClient: { get: vi.fn() } }));
 vi.mock("@/components/ui/chart", () => ({
   ChartContainer: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
@@ -46,8 +48,20 @@ const response = {
 
 describe("ModelInsightsView", () => {
   beforeEach(() => {
+    pricing.mockReturnValue({ data: undefined, isPending: false, isError: false });
     vi.mocked(apiClient.get).mockReset();
     vi.mocked(apiClient.get).mockResolvedValue(response);
+  });
+
+  it("uses API-equivalent costs for spend and allows switching back to actual spend", async () => {
+    pricing.mockReturnValue({ isPending: false, isError: false, data: { daily: [{ date: response.end_date,
+      model_name: metrics.model_group, estimated_cost: 42, estimated_requests: 12, missing_rate_requests: 0 }] } });
+    render(<ModelInsightsView accessToken="token" />);
+    await screen.findByText("fast-chat");
+    await userEvent.click(screen.getByRole("tab", { name: "spend", exact: true }));
+    expect(await screen.findByText("Daily API-equivalent value across your gateway")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("tab", { name: "Actual spend", exact: true }));
+    expect(await screen.findByText("Daily spend across your gateway")).toBeInTheDocument();
   });
 
   it("shows the ranking with share from the API response", async () => {
@@ -102,7 +116,7 @@ describe("ModelInsightsView", () => {
 
     resolve(response);
     expect(
-      await screen.findByText("Share of spend, with the change between the first and second half of the period"),
+      await screen.findByText("Share of API-equivalent value, with the change between the first and second half of the period"),
     ).toBeInTheDocument();
   });
 

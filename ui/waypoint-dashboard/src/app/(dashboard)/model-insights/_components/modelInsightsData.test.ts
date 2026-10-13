@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildBucketTotals, buildSeries, DailyMetric, formatMetric, modelOrder, rankModels } from "./modelInsightsData";
+import { buildBucketTotals, buildSeries, DailyMetric, formatMetric, modelOrder, rankModels, withEquivalentModelCosts } from "./modelInsightsData";
 
 const row = (over: Partial<DailyMetric>): DailyMetric => ({
   model_group: "a",
@@ -14,6 +14,25 @@ const row = (over: Partial<DailyMetric>): DailyMetric => ({
   successful_requests: 0,
   failed_requests: 0,
   ...over,
+});
+
+describe("API-equivalent model costs", () => {
+  it("stacks daily and weekly estimates without changing the recorded spend", () => {
+    const recorded = { start_date: "2026-01-01", end_date: "2026-01-15", top_models: [row({})],
+      daily: [row({})], daily_totals: [{ date: "2026-01-01", spend: 0, prompt_tokens: 0, completion_tokens: 0, requests: 1 }] };
+    const pricing = { currency: "USD" as const, pricing: [], daily: [
+      { date: "2026-01-01", model_name: "a", estimated_cost: 2, estimated_requests: 1, missing_rate_requests: 0 },
+      { date: "2026-01-02", model_name: "a", estimated_cost: 3, estimated_requests: 1, missing_rate_requests: 0 },
+    ], estimated_cost: 5, estimated_requests: 2, missing_rate_requests: 0 };
+    const priced = withEquivalentModelCosts(recorded, pricing);
+    const range = { start: recorded.start_date, end: recorded.end_date };
+    expect(priced.top_models[0].spend).toBe(5);
+    expect(buildSeries(priced.daily, ["a"], "spend", { ...range, granularity: "day" }).slice(0, 2)
+      .map((point) => point.a)).toEqual([2, 3]);
+    expect(buildSeries(priced.daily, ["a"], "spend", { ...range, granularity: "week" })[0].a).toBe(5);
+    expect([...buildBucketTotals(priced.daily_totals, "spend", { ...range, granularity: "week" }).values()]).toEqual([5]);
+    expect(recorded.top_models[0].spend).toBe(0);
+  });
 });
 
 describe("buildSeries", () => {

@@ -6,10 +6,15 @@ import { Info, Server } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import React, { useId, useState } from "react";
+import React, { useId } from "react";
+import { z } from "zod";
+import { storageKey, useStoredValue } from "@/lib/storage";
 import { ProviderLogo } from "@/components/molecules/models/ProviderLogo";
 import { ChartLoader } from "@/components/shared/chart_loader";
 import { Panel } from "../overview/Primitives";
+
+const ZERO_SPEND = storageKey("local", "waypoint.provider-spend.show-zero", z.boolean(), false);
+const UNKNOWN_PROVIDER = storageKey("local", "waypoint.provider-spend.show-unknown", z.boolean(), false);
 
 type ProviderSpendData = {
   provider: string;
@@ -153,8 +158,8 @@ function ToggleField({
 }
 
 const SpendByProvider: React.FC<SpendByProviderProps> = ({ loading, isDateChanging, providerSpend }) => {
-  const [includeZeroSpend, setIncludeZeroSpend] = useState(false);
-  const [includeUnknown, setIncludeUnknown] = useState(false);
+  const [includeZeroSpend, setIncludeZeroSpend] = useStoredValue(ZERO_SPEND);
+  const [includeUnknown, setIncludeUnknown] = useStoredValue(UNKNOWN_PROVIDER);
 
   const filteredProviderSpend = providerSpend.filter((provider) => {
     const isUnknown = provider.provider?.toLowerCase() === "unknown";

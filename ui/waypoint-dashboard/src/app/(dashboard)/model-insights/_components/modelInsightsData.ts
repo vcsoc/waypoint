@@ -1,3 +1,24 @@
+import type { components } from "@/lib/http/schema";
+
+export function withEquivalentModelCosts(data: ModelInsightsResponse, pricing: components["schemas"]["ModelPricingReport"]): ModelInsightsResponse {
+  const daily = (pricing.daily ?? []).map((value): DailyMetric => {
+    const original = data.top_models.find((row) => row.model_group === value.model_name);
+    return { model_group: value.model_name, model: original?.model ?? value.model_name,
+      provider: original?.provider ?? "unknown", date: value.date, spend: value.estimated_cost ?? 0,
+      prompt_tokens: 0, completion_tokens: 0, requests: value.estimated_requests,
+      successful_requests: value.estimated_requests, failed_requests: 0 };
+  });
+  const names = [...new Set(daily.map((row) => row.model_group))];
+  const top_models = names.map((name): ModelMetric => {
+    const rows = daily.filter((row) => row.model_group === name);
+    return { ...rows[0], spend: rows.reduce((sum, row) => sum + row.spend, 0) };
+  });
+  const dates = [...new Set(daily.map((row) => row.date))];
+  const daily_totals = dates.map((date): DailyTotal => ({ date, prompt_tokens: 0, completion_tokens: 0, requests: 0,
+    spend: daily.filter((row) => row.date === date).reduce((sum, row) => sum + row.spend, 0) }));
+  return { ...data, daily, top_models, daily_totals };
+}
+
 export type Metric = "requests" | "spend" | "tokens";
 
 export type ModelMetric = {
