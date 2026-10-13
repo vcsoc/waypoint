@@ -7,7 +7,7 @@ from functools import cache
 from types import MappingProxyType
 from typing import Final, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, JsonValue, TypeAdapter
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, JsonValue, TypeAdapter
 
 from waypoint.waypoint_core_utils.get_model_cost_map import GetModelCostMap
 
@@ -18,13 +18,12 @@ _LOCAL_REFERENCES: Final = MappingProxyType({
 })
 _JSON_MAPPING: Final = TypeAdapter(Mapping[str, JsonValue])
 _INFO_MAPPING: Final = TypeAdapter(Mapping[str, object])
-_CATALOG_MAPPING: Final = TypeAdapter(Mapping[str, Mapping[str, object]])
 _THRESHOLD: Final = re.compile(r"^input_cost_per_token_above_(\d+)(k|m)?_tokens$")
 
 
 class PricingCatalog(BaseModel):
     model_config = ConfigDict(frozen=True, from_attributes=True)
-    model_cost: Mapping[str, Mapping[str, object]]
+    model_cost: Mapping[str, Mapping[str, object]] = Field(validation_alias=AliasChoices("model_cost", "model_cost_map"))
 
 
 class PricingParams(BaseModel):
@@ -112,7 +111,7 @@ def _tier(record: Mapping[str, object], above: int = 0, suffix: str = "") -> Pri
 
 @cache
 def bundled_reference_rates() -> Mapping[str, Mapping[str, object]]:
-    bundled: Final = _CATALOG_MAPPING.validate_python(GetModelCostMap.load_local_model_cost_map_with_revision().model_cost_map)
+    bundled: Final = PricingCatalog.model_validate(GetModelCostMap.load_local_model_cost_map_with_revision()).model_cost
     return MappingProxyType({key: bundled[key] for key in frozenset(_LOCAL_REFERENCES.values()) if key in bundled})
 
 
