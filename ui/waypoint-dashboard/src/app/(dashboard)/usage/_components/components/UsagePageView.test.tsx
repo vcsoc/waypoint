@@ -650,7 +650,7 @@ describe("UsagePage", () => {
 
   it("should render the top models chart stacked in the shared usage palette", async () => {
     const { container } = renderWithProviders(<UsagePage {...defaultProps} />);
-    await userEvent.setup().click(screen.getByRole("button", { name: "Actual spend", exact: true }));
+    await userEvent.setup().click(await screen.findByRole("radio", { name: "Actual spend", exact: true }));
 
     await waitFor(() => {
       expect(mockUserDailyActivityAggregatedCall).toHaveBeenCalled();

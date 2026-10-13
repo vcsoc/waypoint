@@ -55,6 +55,12 @@ const SCALE_OPTIONS = [
   { value: "log", label: "Log" },
 ] as const satisfies readonly { value: StackedUsageScale; label: string }[];
 
+function ChartState({ pending, error, children }: { pending: boolean; error: boolean; children: ReactNode }) {
+  if (pending) return <ChartSkeleton className="mx-3 h-[380px] w-auto" />;
+  if (error) return <p className="p-5">API-equivalent pricing is unavailable</p>;
+  return children;
+}
+
 export default function UsageOverview({
   results,
   totals,
@@ -155,9 +161,7 @@ export default function UsageOverview({
         bodyClassName="px-0 pt-4 pb-0"
       >
         <div className="px-2 pb-2">
-          {chartPending && <ChartSkeleton className="mx-3 h-[380px] w-auto" />}
-          {!chartPending && pricingFailed && <p className="p-5">API-equivalent pricing is unavailable</p>}
-          {!chartPending && !pricingFailed && (
+          <ChartState pending={chartPending} error={pricingFailed}>
             <StackedUsageChart
               data={series.data}
               series={series.keys}
@@ -169,7 +173,7 @@ export default function UsageOverview({
               format={format}
               totalFor={(date) => totalsByBucket.get(date)}
             />
-          )}
+          </ChartState>
         </div>
         <div className={cn("border-t py-2", PANEL_INSET_X)}>
           <Leaderboard
