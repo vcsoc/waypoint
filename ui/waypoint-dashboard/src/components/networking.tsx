@@ -1317,8 +1317,7 @@ const dailyActivityQuery = (
     ...(excludeParam
       ? { [excludeParam]: excludeEntityIds && excludeEntityIds.length > 0 ? excludeEntityIds.join(",") : undefined }
       : {}),
-    timezone: new Date().getTimezoneOffset().toString(),
-    include_current_utc_day: entity === "user" && req.includeCurrentUtcDay ? "true" : undefined,
+    timezone_name: req.timezoneName ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
     ...extra,
   };
 };

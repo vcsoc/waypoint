@@ -59,7 +59,7 @@ describe("dailyActivityAggregatedCall", () => {
     expect(url.searchParams.get(param)).toBe(expected);
     expect(url.searchParams.get("start_date")).toBe("2025-01-05");
     expect(url.searchParams.get("end_date")).toBe("2025-01-31");
-    expect(url.searchParams.has("timezone")).toBe(true);
+    expect(url.searchParams.get("timezone_name")).toBe(Intl.DateTimeFormat().resolvedOptions().timeZone);
     expect(url.searchParams.has("page")).toBe(false);
     expect(url.searchParams.has("page_size")).toBe(false);
   });
@@ -115,12 +115,22 @@ describe("dailyActivityAggregatedCall", () => {
     expect(requestedUrl(mockFetch).searchParams.has("api_key")).toBe(false);
   });
 
-  it("sends include_current_utc_day only when set", async () => {
+  it("uses an explicitly selected reporting timezone instead of the browser offset", async () => {
+    const mockFetch = captureFetch();
+    await dailyActivityAggregatedCall("user", req({ timezoneName: "America/New_York", includeCurrentUtcDay: true }));
+    const query = requestedUrl(mockFetch).searchParams;
+    expect(query.get("timezone_name")).toBe("America/New_York");
+    expect(query.has("timezone")).toBe(false);
+    expect(query.has("include_current_utc_day")).toBe(false);
+  });
+
+  it("uses local calendar boundaries without extending the range to another UTC day", async () => {
     const mockFetch = captureFetch();
 
     await dailyActivityAggregatedCall("user", req({ includeCurrentUtcDay: true }));
 
-    expect(requestedUrl(mockFetch).searchParams.get("include_current_utc_day")).toBe("true");
+    expect(requestedUrl(mockFetch).searchParams.has("include_current_utc_day")).toBe(false);
+    expect(requestedUrl(mockFetch).searchParams.get("timezone_name")).toBe(Intl.DateTimeFormat().resolvedOptions().timeZone);
   });
 
   it("sends api_key_limit only when provided", async () => {
@@ -210,7 +220,8 @@ describe("cacheLeakageKeysCall", () => {
     expect(url.pathname).toBe("/user/daily/activity/aggregated/cache_leakage_keys");
     expect(url.searchParams.get("user_id")).toBe("u1");
     expect(url.searchParams.get("api_key")).toBe("hash-1");
-    expect(url.searchParams.get("include_current_utc_day")).toBe("true");
+    expect(url.searchParams.has("include_current_utc_day")).toBe(false);
+    expect(url.searchParams.get("timezone_name")).toBe(Intl.DateTimeFormat().resolvedOptions().timeZone);
     expect(url.searchParams.has("limit")).toBe(false);
   });
 

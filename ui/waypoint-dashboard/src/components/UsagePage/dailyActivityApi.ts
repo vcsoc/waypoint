@@ -19,6 +19,7 @@ export interface DailyActivityRequest {
   accessToken: string;
   startTime: Date;
   endTime: Date;
+  timezoneName?: string;
   entityIds?: readonly string[] | null;
   excludeEntityIds?: readonly string[];
   apiKey?: string | null;
@@ -92,6 +93,8 @@ const zeroSpendMetrics: Readonly<DailyData["metrics"]> = {
   total_response_time_ms: 0, timed_requests: 0,
 };
 export const EMPTY_SPEND_METRICS = Object.freeze(zeroSpendMetrics);
+
+export const reportingTimezone = (): string => Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 const emptyDay = (date: string): DailyData => ({
   date,

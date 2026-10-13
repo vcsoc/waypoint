@@ -54,6 +54,11 @@ beforeAll(() => {
 });
 
 // Mock the networking module
+vi.mock("@/components/UsagePage/dailyActivityApi", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/components/UsagePage/dailyActivityApi")>(),
+  reportingTimezone: vi.fn(() => "UTC"),
+}));
+
 vi.mock("@/components/networking", () => ({
   dailyActivityAggregatedCall: vi.fn(),
   dailyActivityKeyPageCall: vi.fn(),

@@ -2119,7 +2119,7 @@ export interface paths {
         put?: never;
         /**
          * Cache Delete
-         * @description Endpoint for deleting a key from the cache. All responses from litellm proxy have `x-litellm-cache-key` in the headers
+         * @description Endpoint for deleting a key from the cache. All responses from waypoint proxy have `x-waypoint-cache-key` in the headers
          *
          *     Parameters:
          *     - **keys**: *Optional[List[str]]* - A list of keys to delete from the cache. Example {"keys": ["key1", "key2"]}
@@ -2430,7 +2430,7 @@ export interface paths {
          * Register Plugin
          * @description Register a new plugin in the Waypoint marketplace.
          *
-         *     Waypoint acts as a registry/discovery layer. Plugins are hosted on
+         *     LiteLLM acts as a registry/discovery layer. Plugins are hosted on
          *     GitHub/GitLab/Bitbucket or as a zip archive on any https host (e.g. S3).
          *     Claude Code clones the git source or downloads the archive when users install.
          *
@@ -3052,7 +3052,7 @@ export interface paths {
         put?: never;
         /**
          * Delete Config General Settings
-         * @description Delete the db value of this field in litellm general settings. Resets it to it's initial default value on litellm.
+         * @description Delete the db value of this field in litellm general settings. Resets it to it's initial default value on waypoint.
          */
         post: operations["delete_config_general_settings_config_field_delete_post"];
         delete?: never;
@@ -8269,7 +8269,7 @@ export interface paths {
          *     - tpm_limit: Optional[int] - Specify tpm limit for a given key (Tokens per minute)
          *     - tpd_limit: Optional[int] - Specify tpd limit for a given key (Tokens per day). Charged by batch submissions instead of tpm_limit/rpm_limit.
          *     - soft_budget: Optional[float] - Specify soft budget for a given key. Will trigger a slack alert when this soft budget is reached.
-         *     - tags: Optional[List[str]] - Tags for [tracking spend](https://litellm.vercel.app/docs/proxy/enterprise#tracking-spend-for-custom-tags) and/or doing [tag-based routing](https://litellm.vercel.app/docs/proxy/tag_routing).
+         *     - tags: Optional[List[str]] - Tags for [tracking spend](https://waypoint.vercel.app/docs/proxy/enterprise#tracking-spend-for-custom-tags) and/or doing [tag-based routing](https://waypoint.vercel.app/docs/proxy/tag_routing).
          *     - prompts: Optional[List[str]] - List of prompts that the key is allowed to use.
          *     - enforced_params: Optional[List[str]] - List of enforced params for the key (Enterprise only). [Docs](https://docs.litellm.ai/docs/proxy/enterprise#enforce-required-params-for-llm-requests)
          *     - prompts: Optional[List[str]] - List of prompts that the key is allowed to use.
@@ -8590,7 +8590,7 @@ export interface paths {
          *     - tpm_limit: Optional[int] - Specify tpm limit for a given key (Tokens per minute)
          *     - tpd_limit: Optional[int] - Specify tpd limit for a given key (Tokens per day). Charged by batch submissions instead of tpm_limit/rpm_limit.
          *     - soft_budget: Optional[float] - Specify soft budget for a given key. Will trigger a slack alert when this soft budget is reached.
-         *     - tags: Optional[List[str]] - Tags for [tracking spend](https://litellm.vercel.app/docs/proxy/enterprise#tracking-spend-for-custom-tags) and/or doing [tag-based routing](https://litellm.vercel.app/docs/proxy/tag_routing).
+         *     - tags: Optional[List[str]] - Tags for [tracking spend](https://waypoint.vercel.app/docs/proxy/enterprise#tracking-spend-for-custom-tags) and/or doing [tag-based routing](https://waypoint.vercel.app/docs/proxy/tag_routing).
          *     - enforced_params: Optional[List[str]] - List of enforced params for the key (Enterprise only). [Docs](https://docs.litellm.ai/docs/proxy/enterprise#enforce-required-params-for-llm-requests)
          *     - allowed_routes: Optional[list] - List of allowed routes for the key. Store the actual route or store a wildcard pattern for a set of routes. Example - ["/chat/completions", "/embeddings", "/keys/*"]
          *     - object_permission: Optional[LiteLLM_ObjectPermissionBase] - key-specific object permission. Example - {"vector_stores": ["vector_store_1", "vector_store_2"], "agents": ["agent_1", "agent_2"], "agent_access_groups": ["dev_group"]}. IF null or {} then no object permission.
@@ -8736,7 +8736,7 @@ export interface paths {
          *     - enable_prompt_caching: Optional[bool] - Auto-inject prompt caching breakpoints (Anthropic cache_control markers) on requests made with this key. Supported Claude models on Anthropic, Bedrock, Vertex AI, and Azure AI only.
          *     - prompts: Optional[List[str]] - List of prompts that the key is allowed to use.
          *     - blocked: Optional[bool] - Whether the key is blocked
-         *     - aliases: Optional[dict] - Model aliases for the key - [Docs](https://litellm.vercel.app/docs/proxy/virtual_keys#model-aliases)
+         *     - aliases: Optional[dict] - Model aliases for the key - [Docs](https://waypoint.vercel.app/docs/proxy/virtual_keys#model-aliases)
          *     - config: Optional[dict] - [DEPRECATED PARAM] Key-specific config.
          *     - temp_budget_increase: Optional[float] - Temporary budget increase for the key (Enterprise only).
          *     - temp_budget_expiry: Optional[str] - Expiry time for the temporary budget increase (Enterprise only).
@@ -9599,23 +9599,6 @@ export interface paths {
         put?: never;
         /** Connect Account */
         post: operations["connect_account_liteadmin_slack_connect__token__post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/waypoint/.well-known/waypoint-ui-config": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Ui Config */
-        get: operations["get_ui_config_litellm__well_known_litellm_ui_config_get"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -12134,7 +12117,7 @@ export interface paths {
          *     - budget_duration: *Optional[str]* - Frequency of reseting org budget
          *     - metadata: *Optional[dict]* - Metadata for organization, store information for organization. Example metadata - {"extra_info": "some info"}
          *     - blocked: *bool* - Flag indicating if the org is blocked or not - will stop all calls from keys with this org_id.
-         *     - tags: *Optional[List[str]]* - Tags for [tracking spend](https://litellm.vercel.app/docs/proxy/enterprise#tracking-spend-for-custom-tags) and/or doing [tag-based routing](https://litellm.vercel.app/docs/proxy/tag_routing).
+         *     - tags: *Optional[List[str]]* - Tags for [tracking spend](https://waypoint.vercel.app/docs/proxy/enterprise#tracking-spend-for-custom-tags) and/or doing [tag-based routing](https://waypoint.vercel.app/docs/proxy/tag_routing).
          *     - organization_id: *Optional[str]* - The organization id of the team. Default is None. Create via `/organization/new`.
          *     - model_aliases: Optional[dict] - Model aliases for the team. [Docs](https://docs.litellm.ai/docs/proxy/team_based_routing#create-team-with-model-alias)
          *     - object_permission: Optional[LiteLLM_ObjectPermissionBase] - organization-specific object permission. Example - {"vector_stores": ["vector_store_1", "vector_store_2"]}. IF null or {} then no object permission.
@@ -13933,7 +13916,7 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Waypoint Blog Posts
+         * Get Litellm Blog Posts
          * @description Public endpoint to get the latest Waypoint blog posts.
          *
          *     Fetches from GitHub with a 1-hour in-process cache.
@@ -13956,7 +13939,7 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Waypoint Model Cost Map
+         * Get Litellm Model Cost Map
          * @description Public endpoint to get the Waypoint model cost map.
          *     Returns pricing information for all supported models.
          *     With catalog_only=true, returns the catalog as loaded, without entries registered at runtime for proxy deployments.
@@ -17364,7 +17347,7 @@ export interface paths {
          *     - models: Optional[list] - A list of models associated with the team - all keys for this team_id will have at most, these models. If empty, assumes all models are allowed.
          *     - blocked: bool - Flag indicating if the team is blocked or not - will stop all calls from keys with this team_id.
          *     - members: Optional[List] - Control team members via `/team/member/add` and `/team/member/delete`.
-         *     - tags: Optional[List[str]] - Tags for [tracking spend](https://litellm.vercel.app/docs/proxy/enterprise#tracking-spend-for-custom-tags) and/or doing [tag-based routing](https://litellm.vercel.app/docs/proxy/tag_routing).
+         *     - tags: Optional[List[str]] - Tags for [tracking spend](https://waypoint.vercel.app/docs/proxy/enterprise#tracking-spend-for-custom-tags) and/or doing [tag-based routing](https://waypoint.vercel.app/docs/proxy/tag_routing).
          *     - prompts: Optional[List[str]] - List of prompts that the team is allowed to use.
          *     - organization_id: Optional[str] - The organization id of the team. Default is None. Create via `/organization/new`.
          *     - model_aliases: Optional[dict] - Model aliases for the team. [Docs](https://docs.litellm.ai/docs/proxy/team_based_routing#create-team-with-model-alias)
@@ -17593,7 +17576,7 @@ export interface paths {
          *     - models: Optional[list] - A list of models associated with the team - all keys for this team_id will have at most, these models. If empty, assumes all models are allowed.
          *     - prompts: Optional[List[str]] - List of prompts that the team is allowed to use.
          *     - blocked: bool - Flag indicating if the team is blocked or not - will stop all calls from keys with this team_id.
-         *     - tags: Optional[List[str]] - Tags for [tracking spend](https://litellm.vercel.app/docs/proxy/enterprise#tracking-spend-for-custom-tags) and/or doing [tag-based routing](https://litellm.vercel.app/docs/proxy/tag_routing).
+         *     - tags: Optional[List[str]] - Tags for [tracking spend](https://waypoint.vercel.app/docs/proxy/enterprise#tracking-spend-for-custom-tags) and/or doing [tag-based routing](https://waypoint.vercel.app/docs/proxy/tag_routing).
          *     - organization_id: Optional[str] - The organization id of the team. Default is None. Create via `/organization/new`.
          *     - model_aliases: Optional[dict] - Model aliases for the team. [Docs](https://docs.litellm.ai/docs/proxy/team_based_routing#create-team-with-model-alias)
          *     - model_max_budget: Optional[dict] - Per-model max budget every key on the team inherits unless the key sets its own for that model. Example: {"gpt-4o": {"max_budget": 10, "budget_duration": "1d"}}
@@ -18950,7 +18933,7 @@ export interface paths {
          *     - tpm_limit: Optional[int] - Specify tpm limit for a given user (Tokens per minute)
          *     - rpm_limit: Optional[int] - Specify rpm limit for a given user (Requests per minute)
          *     - auto_create_key: bool - Default=True. Flag used for returning a key as part of the /user/new response
-         *     - aliases: Optional[dict] - Model aliases for the user - [Docs](https://litellm.vercel.app/docs/proxy/virtual_keys#model-aliases)
+         *     - aliases: Optional[dict] - Model aliases for the user - [Docs](https://waypoint.vercel.app/docs/proxy/virtual_keys#model-aliases)
          *     - config: Optional[dict] - [DEPRECATED PARAM] User-specific config.
          *     - allowed_cache_controls: Optional[list] - List of allowed cache control values. Example - ["no-cache", "no-store"]. See all values - https://docs.litellm.ai/docs/proxy/caching#turn-on--off-caching-per-request-
          *     - blocked: Optional[bool] - [Not Implemented Yet] Whether the user is blocked.
@@ -19089,7 +19072,7 @@ export interface paths {
          *         - tpm_limit: Optional[int] - Specify tpm limit for a given user (Tokens per minute)
          *         - rpm_limit: Optional[int] - Specify rpm limit for a given user (Requests per minute)
          *         - auto_create_key: bool - Default=True. Flag used for returning a key as part of the /user/new response
-         *         - aliases: Optional[dict] - Model aliases for the user - [Docs](https://litellm.vercel.app/docs/proxy/virtual_keys#model-aliases)
+         *         - aliases: Optional[dict] - Model aliases for the user - [Docs](https://waypoint.vercel.app/docs/proxy/virtual_keys#model-aliases)
          *         - config: Optional[dict] - [DEPRECATED PARAM] User-specific config.
          *         - allowed_cache_controls: Optional[list] - List of allowed cache control values. Example - ["no-cache", "no-store"]. See all values - https://docs.litellm.ai/docs/proxy/caching#turn-on--off-caching-per-request-
          *         - blocked: Optional[bool] - [Not Implemented Yet] Whether the user is blocked.
@@ -19626,7 +19609,7 @@ export interface paths {
          * Trigger Agent Kill Switch
          * @description Fire the agent's configured kill switch webhook. Proxy admin only.
          *
-         *     Waypoint only makes the configured HTTP call and reports what came back; it
+         *     LiteLLM only makes the configured HTTP call and reports what came back; it
          *     does not change the agent's state in Waypoint. Returns 200 when the webhook
          *     answered 2xx, 502 with the same result body otherwise. Every attempt is
          *     written to the audit log as a `kill_switch_fired` row against the agent.
@@ -24897,6 +24880,23 @@ export interface paths {
         patch: operations["watsonx_proxy_route_watsonx__endpoint__patch"];
         trace?: never;
     };
+    "/waypoint/.well-known/waypoint-ui-config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Ui Config */
+        get: operations["get_ui_config_waypoint__well_known_waypoint_ui_config_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/{mcp_server_name}/authorize": {
         parameters: {
             query?: never;
@@ -25932,7 +25932,7 @@ export interface components {
             credential_fields: components["schemas"]["AgentCredentialField"][];
             /** Description */
             description?: string | null;
-            /** Waypoint Params Template */
+            /** Litellm Params Template */
             litellm_params_template?: {
                 [key: string]: string;
             } | null;
@@ -25951,7 +25951,7 @@ export interface components {
              * @enum {string}
              */
             field_type: "text" | "password" | "select" | "upload" | "textarea";
-            /** Include In Waypoint Params */
+            /** Include In Litellm Params */
             include_in_litellm_params?: boolean | null;
             /** Key */
             key: string;
@@ -26229,7 +26229,7 @@ export interface components {
             /** Keys */
             keys?: components["schemas"]["AgentKeySummary"][] | null;
             kill_switch?: components["schemas"]["AgentKillSwitchConfig"] | null;
-            /** Waypoint Params */
+            /** Litellm Params */
             litellm_params?: {
                 [key: string]: unknown;
             } | null;
@@ -27581,7 +27581,7 @@ export interface components {
             custom_llm_provider: string;
             /** File */
             file: string;
-            /** Waypoint Metadata */
+            /** Litellm Metadata */
             litellm_metadata?: string | null;
             /**
              * Passthrough
@@ -27610,7 +27610,7 @@ export interface components {
             custom_llm_provider: string;
             /** File */
             file: string;
-            /** Waypoint Metadata */
+            /** Litellm Metadata */
             litellm_metadata?: string | null;
             /**
              * Passthrough
@@ -27639,7 +27639,7 @@ export interface components {
             custom_llm_provider: string;
             /** File */
             file: string;
-            /** Waypoint Metadata */
+            /** Litellm Metadata */
             litellm_metadata?: string | null;
             /**
              * Passthrough
@@ -27707,7 +27707,7 @@ export interface components {
         /** Body_test_model_connection_health_test_connection_post */
         Body_test_model_connection_health_test_connection_post: {
             /**
-             * Waypoint Params
+             * Litellm Params
              * @description Parameters for waypoint.completion, waypoint.embedding for the health check
              */
             litellm_params?: {
@@ -28435,7 +28435,7 @@ export interface components {
             health_check_cache_params?: {
                 [key: string]: unknown;
             } | null;
-            /** Waypoint Cache Params */
+            /** Litellm Cache Params */
             litellm_cache_params?: string | null;
             /** Ping Response */
             ping_response?: boolean | null;
@@ -29728,7 +29728,7 @@ export interface components {
         ComplexityTier: "NON_REASONING" | "SIMPLE" | "MEDIUM" | "COMPLEX" | "REASONING";
         /** ComplexityTierModel */
         ComplexityTierModel: {
-            /** Waypoint Params */
+            /** Litellm Params */
             litellm_params?: {
                 [key: string]: unknown;
             };
@@ -30587,7 +30587,7 @@ export interface components {
             } | null;
             general_settings?: components["schemas"]["ConfigGeneralSettings"] | null;
             /**
-             * Waypoint Settings
+             * Litellm Settings
              * @description litellm Module settings. See __init__.py for all, example waypoint.drop_params=True, waypoint.set_verbose=True, waypoint.api_base, waypoint.cache
              */
             litellm_settings?: {
@@ -31992,7 +31992,7 @@ export interface components {
             /** Blocked */
             blocked?: boolean | null;
             litellm_params: components["schemas"]["LiteLLM_Params"];
-            model_info: components["schemas"]["litellm__types__router__ModelInfo"];
+            model_info: components["schemas"]["waypoint__types__router__ModelInfo"];
             /** Model Name */
             model_name: string;
         } & {
@@ -32250,12 +32250,12 @@ export interface components {
              */
             input: string[];
             /**
-             * Waypoint Call Id
+             * Litellm Call Id
              * @default null
              */
             litellm_call_id: string | null;
             /**
-             * Waypoint Logging Obj
+             * Litellm Logging Obj
              * @default null
              */
             litellm_logging_obj: {
@@ -32342,7 +32342,7 @@ export interface components {
             config_lines: string[];
             /** Deployment */
             deployment: string | null;
-            /** Waypoint Version */
+            /** Litellm Version */
             litellm_version: string;
             /** Python Version */
             python_version: string;
@@ -33336,7 +33336,7 @@ export interface components {
             key_name?: string | null;
             /** Key Type */
             key_type?: string | null;
-            /** Waypoint Budget Table */
+            /** Litellm Budget Table */
             litellm_budget_table?: unknown | null;
             /** Max Budget */
             max_budget?: number | null;
@@ -35011,7 +35011,7 @@ export interface components {
             deleted_by_api_key?: string | null;
             /** Id */
             id?: string | null;
-            /** Waypoint Changed By */
+            /** Litellm Changed By */
             litellm_changed_by?: string | null;
             litellm_model_table?: components["schemas"]["LiteLLM_ModelTable"] | null;
             /** Max Budget */
@@ -35166,11 +35166,11 @@ export interface components {
             last_active?: string | null;
             /** Last Rotation At */
             last_rotation_at?: string | null;
-            /** Waypoint Budget Table */
+            /** Litellm Budget Table */
             litellm_budget_table?: {
                 [key: string]: unknown;
             } | null;
-            /** Waypoint Changed By */
+            /** Litellm Changed By */
             litellm_changed_by?: string | null;
             /** Max Budget */
             max_budget?: number | null;
@@ -36095,9 +36095,9 @@ export interface components {
             itpm?: number | null;
             /** Keepalive Seconds */
             keepalive_seconds?: number | null;
-            /** Waypoint Credential Name */
+            /** Litellm Credential Name */
             litellm_credential_name?: string | null;
-            /** Waypoint Trace Id */
+            /** Litellm Trace Id */
             litellm_trace_id?: string | null;
             /** Max Budget */
             max_budget?: number | null;
@@ -36286,7 +36286,7 @@ export interface components {
              */
             use_in_pass_through: boolean | null;
             /**
-             * Use Waypoint Proxy
+             * Use Litellm Proxy
              * @default false
              */
             use_litellm_proxy: boolean | null;
@@ -36393,7 +36393,7 @@ export interface components {
             created_at?: string | null;
             /** Created By */
             created_by?: string | null;
-            /** Waypoint Params */
+            /** Litellm Params */
             litellm_params: {
                 [key: string]: unknown;
             };
@@ -36490,7 +36490,7 @@ export interface components {
         LiteLLM_TeamMembership: {
             /** Budget Id */
             budget_id?: string | null;
-            /** Waypoint Budget Table */
+            /** Litellm Budget Table */
             litellm_budget_table?: components["schemas"]["LiteLLM_BudgetTableFull"] | components["schemas"]["LiteLLM_BudgetTable"] | null;
             /**
              * Spend
@@ -36909,7 +36909,7 @@ export interface components {
             last_active?: string | null;
             /** Last Rotation At */
             last_rotation_at?: string | null;
-            /** Waypoint Budget Table */
+            /** Litellm Budget Table */
             litellm_budget_table?: {
                 [key: string]: unknown;
             } | null;
@@ -38946,12 +38946,12 @@ export interface components {
              */
             deprecation_date: string;
             /**
-             * Waypoint Model
+             * Litellm Model
              * @description The underlying litellm model string the deprecation date is sourced from.
              */
             litellm_model?: string | null;
             /**
-             * Waypoint Provider
+             * Litellm Provider
              * @description The provider this model belongs to.
              */
             litellm_provider?: string | null;
@@ -39194,11 +39194,11 @@ export interface components {
         };
         /** ModelParams */
         ModelParams: {
-            /** Waypoint Params */
+            /** Litellm Params */
             litellm_params: {
                 [key: string]: unknown;
             };
-            model_info: components["schemas"]["litellm__proxy___types__ModelInfo"];
+            model_info: components["schemas"]["waypoint__proxy___types__ModelInfo"];
             /** Model Name */
             model_name: string;
         };
@@ -40184,7 +40184,7 @@ export interface components {
             key_name?: string | null;
             /** Key Type */
             key_type?: string | null;
-            /** Waypoint Budget Table */
+            /** Litellm Budget Table */
             litellm_budget_table?: unknown | null;
             /** Max Budget */
             max_budget?: number | null;
@@ -42205,7 +42205,7 @@ export interface components {
             credential_fields: components["schemas"]["ProviderCredentialField"][];
             /** Default Model Placeholder */
             default_model_placeholder?: string | null;
-            /** Waypoint Provider */
+            /** Litellm Provider */
             litellm_provider: string;
             /** Provider */
             provider: string;
@@ -42408,7 +42408,7 @@ export interface components {
             custom_docs_description: string | null;
             /** Docs Title */
             docs_title: string;
-            /** Waypoint Version */
+            /** Litellm Version */
             litellm_version: string;
             /** Useful Links */
             useful_links: {
@@ -42708,7 +42708,7 @@ export interface components {
          * RegisterPluginRequest
          * @description Request body for registering a plugin in the marketplace.
          *
-         *     Waypoint acts as a registry/discovery layer. Plugins are hosted on
+         *     LiteLLM acts as a registry/discovery layer. Plugins are hosted on
          *     GitHub/GitLab/Bitbucket or as a zip archive on any https host and referenced by their source.
          */
         RegisterPluginRequest: {
@@ -44492,7 +44492,7 @@ export interface components {
             /** Tool Choice */
             tool_choice?: ("none" | "auto" | "required") | components["schemas"]["ToolChoiceAllowedParam"] | components["schemas"]["ToolChoiceTypesParam"] | components["schemas"]["ToolChoiceFunctionParam"] | components["schemas"]["ToolChoiceMcpParam"] | components["schemas"]["ToolChoiceCustomParam"] | components["schemas"]["ToolChoiceApplyPatchParam"] | components["schemas"]["ToolChoiceShellParam"] | null;
             /** Tools */
-            tools?: (components["schemas"]["FunctionToolParam"] | components["schemas"]["FileSearchToolParam"] | components["schemas"]["openai__types__responses__computer_tool_param__ComputerToolParam"] | components["schemas"]["ComputerUsePreviewToolParam"] | components["schemas"]["WebSearchToolParam"] | components["schemas"]["Mcp"] | components["schemas"]["CodeInterpreter"] | components["schemas"]["ImageGeneration"] | components["schemas"]["LocalShell"] | components["schemas"]["FunctionShellToolParam"] | components["schemas"]["CustomToolParam"] | components["schemas"]["NamespaceToolParam"] | components["schemas"]["ToolSearchToolParam"] | components["schemas"]["WebSearchPreviewToolParam"] | components["schemas"]["ApplyPatchToolParam"] | components["schemas"]["litellm__types__llms__openai__ComputerToolParam"] | components["schemas"]["ShellToolParam"])[] | null;
+            tools?: (components["schemas"]["FunctionToolParam"] | components["schemas"]["FileSearchToolParam"] | components["schemas"]["openai__types__responses__computer_tool_param__ComputerToolParam"] | components["schemas"]["ComputerUsePreviewToolParam"] | components["schemas"]["WebSearchToolParam"] | components["schemas"]["Mcp"] | components["schemas"]["CodeInterpreter"] | components["schemas"]["ImageGeneration"] | components["schemas"]["LocalShell"] | components["schemas"]["FunctionShellToolParam"] | components["schemas"]["CustomToolParam"] | components["schemas"]["NamespaceToolParam"] | components["schemas"]["ToolSearchToolParam"] | components["schemas"]["WebSearchPreviewToolParam"] | components["schemas"]["ApplyPatchToolParam"] | components["schemas"]["waypoint__types__llms__openai__ComputerToolParam"] | components["schemas"]["ShellToolParam"])[] | null;
             /** Top Logprobs */
             top_logprobs?: number | null;
             /** Top P */
@@ -46174,7 +46174,7 @@ export interface components {
             input_preview: string;
             /** Input Tokens */
             input_tokens: number;
-            /** Waypoint Request Id */
+            /** Litellm Request Id */
             litellm_request_id: string | null;
             /** Model */
             model: string | null;
@@ -46485,7 +46485,7 @@ export interface components {
             tier_boundaries?: components["schemas"]["StandardLoggingRoutingDecisionTierBoundaries"];
             /** Tier Label */
             tier_label?: string;
-            /** Tier Waypoint Params */
+            /** Tier Litellm Params */
             tier_litellm_params?: {
                 [key: string]: unknown;
             };
@@ -47219,7 +47219,7 @@ export interface components {
         TeamMemberInfoResponse: {
             /** Budget Id */
             budget_id?: string | null;
-            /** Waypoint Budget Table */
+            /** Litellm Budget Table */
             litellm_budget_table?: components["schemas"]["LiteLLM_BudgetTableFull"] | components["schemas"]["LiteLLM_BudgetTable"] | null;
             /** Role */
             role?: string | null;
@@ -49962,7 +49962,7 @@ export interface components {
             last_refreshed_at?: number | null;
             /** Last Rotation At */
             last_rotation_at?: string | null;
-            /** Waypoint Budget Table */
+            /** Litellm Budget Table */
             litellm_budget_table?: {
                 [key: string]: unknown;
             } | null;
@@ -50246,7 +50246,7 @@ export interface components {
             /** Header Name */
             header_name: string;
             /**
-             * Waypoint User Role
+             * Litellm User Role
              * @enum {string}
              */
             litellm_user_role: "internal_user" | "customer";
@@ -50804,114 +50804,6 @@ export interface components {
             /** Status */
             status?: ("pending" | "running" | "paused" | "completed" | "failed") | null;
         };
-        /** ModelInfo */
-        litellm__proxy___types__ModelInfo: {
-            /** Base Model */
-            base_model: ("gpt-4-1106-preview" | "gpt-4-32k" | "gpt-4" | "gpt-3.5-turbo-16k" | "gpt-3.5-turbo" | "text-embedding-ada-002") | null;
-            /** Discoverable */
-            discoverable?: boolean | null;
-            /** Id */
-            id: string | null;
-            /**
-             * Input Cost Per Token
-             * @default 0
-             */
-            input_cost_per_token: number | null;
-            /**
-             * Max Tokens
-             * @default 2048
-             */
-            max_tokens: number | null;
-            /** Mode */
-            mode: ("embedding" | "chat" | "completion") | null;
-            /**
-             * Output Cost Per Token
-             * @default 0
-             */
-            output_cost_per_token: number | null;
-        } & {
-            [key: string]: unknown;
-        };
-        /** ComputerToolParam */
-        litellm__types__llms__openai__ComputerToolParam: {
-            /** Display Height */
-            display_height: number;
-            /** Display Width */
-            display_width: number;
-            /** Environment */
-            environment: ("mac" | "windows" | "ubuntu" | "browser") | string;
-            /** Type */
-            type: "computer_use_preview" | string;
-        };
-        /** ModelInfo */
-        litellm__types__router__ModelInfo: {
-            /** Access Windows */
-            access_windows?: components["schemas"]["ModelAccessWindow"][] | null;
-            /** Allow Fail Open */
-            allow_fail_open?: boolean | null;
-            /** Base Model */
-            base_model?: string | null;
-            /** Blocked */
-            blocked?: boolean | null;
-            /** Cache Creation Input Token Cost */
-            cache_creation_input_token_cost?: number | null;
-            /** Cache Read Input Token Cost */
-            cache_read_input_token_cost?: number | null;
-            /** Cost Per Ptu Per Hour */
-            cost_per_ptu_per_hour?: number | null;
-            /** Created At */
-            created_at?: string | null;
-            /** Created By */
-            created_by?: string | null;
-            /**
-             * Db Model
-             * @default false
-             */
-            db_model: boolean;
-            /** Discoverable */
-            discoverable?: boolean | null;
-            /** Enable Tag Filtering */
-            enable_tag_filtering?: boolean | null;
-            /** Id */
-            id: string | null;
-            /** Input Cost Per Character */
-            input_cost_per_character?: number | null;
-            /** Input Cost Per Token */
-            input_cost_per_token?: number | null;
-            /** Internal Router Model */
-            internal_router_model?: boolean | null;
-            /**
-             * Member Auto Router
-             * @default false
-             */
-            member_auto_router: boolean;
-            /** Output Cost Per Character */
-            output_cost_per_character?: number | null;
-            /** Output Cost Per Token */
-            output_cost_per_token?: number | null;
-            /** Ptu Count */
-            ptu_count?: number | null;
-            /** Ptu Effective From */
-            ptu_effective_from?: string | null;
-            /** Ptu Effective To */
-            ptu_effective_to?: string | null;
-            /** Team Id */
-            team_id?: string | null;
-            /** Team Public Model Name */
-            team_public_model_name?: string | null;
-            /** Tier */
-            tier?: ("free" | "paid") | null;
-            /** Tiered Pricing */
-            tiered_pricing?: {
-                [key: string]: unknown;
-            }[] | null;
-            /** Updated At */
-            updated_at?: string | null;
-            /** Updated By */
-            updated_by?: string | null;
-        } & {
-            [key: string]: unknown;
-        };
         /**
          * ComputerToolParam
          * @description A tool that controls a virtual computer.
@@ -51007,7 +50899,7 @@ export interface components {
             /** Blocked */
             blocked?: boolean | null;
             litellm_params?: components["schemas"]["updateLiteLLMParams"] | null;
-            model_info?: components["schemas"]["litellm__types__router__ModelInfo"] | null;
+            model_info?: components["schemas"]["waypoint__types__router__ModelInfo"] | null;
             /** Model Name */
             model_name?: string | null;
         };
@@ -51311,9 +51203,9 @@ export interface components {
             itpm?: number | null;
             /** Keepalive Seconds */
             keepalive_seconds?: number | null;
-            /** Waypoint Credential Name */
+            /** Litellm Credential Name */
             litellm_credential_name?: string | null;
-            /** Waypoint Trace Id */
+            /** Litellm Trace Id */
             litellm_trace_id?: string | null;
             /** Max Budget */
             max_budget?: number | null;
@@ -51502,7 +51394,7 @@ export interface components {
              */
             use_in_pass_through: boolean | null;
             /**
-             * Use Waypoint Proxy
+             * Use Litellm Proxy
              * @default false
              */
             use_litellm_proxy: boolean | null;
@@ -51536,6 +51428,114 @@ export interface components {
             vertex_project?: string | null;
             /** Watsonx Region Name */
             watsonx_region_name?: string | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /** ModelInfo */
+        waypoint__proxy___types__ModelInfo: {
+            /** Base Model */
+            base_model: ("gpt-4-1106-preview" | "gpt-4-32k" | "gpt-4" | "gpt-3.5-turbo-16k" | "gpt-3.5-turbo" | "text-embedding-ada-002") | null;
+            /** Discoverable */
+            discoverable?: boolean | null;
+            /** Id */
+            id: string | null;
+            /**
+             * Input Cost Per Token
+             * @default 0
+             */
+            input_cost_per_token: number | null;
+            /**
+             * Max Tokens
+             * @default 2048
+             */
+            max_tokens: number | null;
+            /** Mode */
+            mode: ("embedding" | "chat" | "completion") | null;
+            /**
+             * Output Cost Per Token
+             * @default 0
+             */
+            output_cost_per_token: number | null;
+        } & {
+            [key: string]: unknown;
+        };
+        /** ComputerToolParam */
+        waypoint__types__llms__openai__ComputerToolParam: {
+            /** Display Height */
+            display_height: number;
+            /** Display Width */
+            display_width: number;
+            /** Environment */
+            environment: ("mac" | "windows" | "ubuntu" | "browser") | string;
+            /** Type */
+            type: "computer_use_preview" | string;
+        };
+        /** ModelInfo */
+        waypoint__types__router__ModelInfo: {
+            /** Access Windows */
+            access_windows?: components["schemas"]["ModelAccessWindow"][] | null;
+            /** Allow Fail Open */
+            allow_fail_open?: boolean | null;
+            /** Base Model */
+            base_model?: string | null;
+            /** Blocked */
+            blocked?: boolean | null;
+            /** Cache Creation Input Token Cost */
+            cache_creation_input_token_cost?: number | null;
+            /** Cache Read Input Token Cost */
+            cache_read_input_token_cost?: number | null;
+            /** Cost Per Ptu Per Hour */
+            cost_per_ptu_per_hour?: number | null;
+            /** Created At */
+            created_at?: string | null;
+            /** Created By */
+            created_by?: string | null;
+            /**
+             * Db Model
+             * @default false
+             */
+            db_model: boolean;
+            /** Discoverable */
+            discoverable?: boolean | null;
+            /** Enable Tag Filtering */
+            enable_tag_filtering?: boolean | null;
+            /** Id */
+            id: string | null;
+            /** Input Cost Per Character */
+            input_cost_per_character?: number | null;
+            /** Input Cost Per Token */
+            input_cost_per_token?: number | null;
+            /** Internal Router Model */
+            internal_router_model?: boolean | null;
+            /**
+             * Member Auto Router
+             * @default false
+             */
+            member_auto_router: boolean;
+            /** Output Cost Per Character */
+            output_cost_per_character?: number | null;
+            /** Output Cost Per Token */
+            output_cost_per_token?: number | null;
+            /** Ptu Count */
+            ptu_count?: number | null;
+            /** Ptu Effective From */
+            ptu_effective_from?: string | null;
+            /** Ptu Effective To */
+            ptu_effective_to?: string | null;
+            /** Team Id */
+            team_id?: string | null;
+            /** Team Public Model Name */
+            team_public_model_name?: string | null;
+            /** Tier */
+            tier?: ("free" | "paid") | null;
+            /** Tiered Pricing */
+            tiered_pricing?: {
+                [key: string]: unknown;
+            }[] | null;
+            /** Updated At */
+            updated_at?: string | null;
+            /** Updated By */
+            updated_by?: string | null;
         } & {
             [key: string]: unknown;
         };
@@ -52429,6 +52429,7 @@ export interface operations {
                 api_key?: string | null;
                 exclude_agent_ids?: string | null;
                 timezone?: number | null;
+                timezone_name?: string | null;
             };
             header?: never;
             path?: never;
@@ -52468,6 +52469,7 @@ export interface operations {
                 api_key?: string | null;
                 exclude_agent_ids?: string | null;
                 timezone?: number | null;
+                timezone_name?: string | null;
             };
             header?: never;
             path?: never;
@@ -52508,6 +52510,7 @@ export interface operations {
                 api_key?: string | null;
                 exclude_agent_ids?: string | null;
                 timezone?: number | null;
+                timezone_name?: string | null;
             };
             header?: never;
             path?: never;
@@ -52547,6 +52550,7 @@ export interface operations {
                 api_key?: string | null;
                 exclude_agent_ids?: string | null;
                 timezone?: number | null;
+                timezone_name?: string | null;
             };
             header?: never;
             path?: never;
@@ -52586,6 +52590,7 @@ export interface operations {
                 api_key?: string | null;
                 exclude_agent_ids?: string | null;
                 timezone?: number | null;
+                timezone_name?: string | null;
             };
             header?: never;
             path?: never;
@@ -57721,6 +57726,7 @@ export interface operations {
                 api_key?: string | null;
                 exclude_end_user_ids?: string | null;
                 timezone?: number | null;
+                timezone_name?: string | null;
             };
             header?: never;
             path?: never;
@@ -57760,6 +57766,7 @@ export interface operations {
                 api_key?: string | null;
                 exclude_end_user_ids?: string | null;
                 timezone?: number | null;
+                timezone_name?: string | null;
             };
             header?: never;
             path?: never;
@@ -57800,6 +57807,7 @@ export interface operations {
                 api_key?: string | null;
                 exclude_end_user_ids?: string | null;
                 timezone?: number | null;
+                timezone_name?: string | null;
             };
             header?: never;
             path?: never;
@@ -57839,6 +57847,7 @@ export interface operations {
                 api_key?: string | null;
                 exclude_end_user_ids?: string | null;
                 timezone?: number | null;
+                timezone_name?: string | null;
             };
             header?: never;
             path?: never;
@@ -57878,6 +57887,7 @@ export interface operations {
                 api_key?: string | null;
                 exclude_end_user_ids?: string | null;
                 timezone?: number | null;
+                timezone_name?: string | null;
             };
             header?: never;
             path?: never;
@@ -58400,12 +58410,12 @@ export interface operations {
                      */
                     input?: string[];
                     /**
-                     * Waypoint Call Id
+                     * Litellm Call Id
                      * @default null
                      */
                     litellm_call_id?: string | null;
                     /**
-                     * Waypoint Logging Obj
+                     * Litellm Logging Obj
                      * @default null
                      */
                     litellm_logging_obj?: {
@@ -58534,6 +58544,7 @@ export interface operations {
                 api_key?: string | null;
                 exclude_end_user_ids?: string | null;
                 timezone?: number | null;
+                timezone_name?: string | null;
             };
             header?: never;
             path?: never;
@@ -58573,6 +58584,7 @@ export interface operations {
                 api_key?: string | null;
                 exclude_end_user_ids?: string | null;
                 timezone?: number | null;
+                timezone_name?: string | null;
             };
             header?: never;
             path?: never;
@@ -58613,6 +58625,7 @@ export interface operations {
                 api_key?: string | null;
                 exclude_end_user_ids?: string | null;
                 timezone?: number | null;
+                timezone_name?: string | null;
             };
             header?: never;
             path?: never;
@@ -58652,6 +58665,7 @@ export interface operations {
                 api_key?: string | null;
                 exclude_end_user_ids?: string | null;
                 timezone?: number | null;
+                timezone_name?: string | null;
             };
             header?: never;
             path?: never;
@@ -58691,6 +58705,7 @@ export interface operations {
                 api_key?: string | null;
                 exclude_end_user_ids?: string | null;
                 timezone?: number | null;
+                timezone_name?: string | null;
             };
             header?: never;
             path?: never;
@@ -59185,12 +59200,12 @@ export interface operations {
                      */
                     input?: string[];
                     /**
-                     * Waypoint Call Id
+                     * Litellm Call Id
                      * @default null
                      */
                     litellm_call_id?: string | null;
                     /**
-                     * Waypoint Logging Obj
+                     * Litellm Logging Obj
                      * @default null
                      */
                     litellm_logging_obj?: {
@@ -64981,26 +64996,6 @@ export interface operations {
             };
         };
     };
-    get_ui_config_litellm__well_known_litellm_ui_config_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UiDiscoveryEndpoints"];
-                };
-            };
-        };
-    };
     login_login_post: {
         parameters: {
             query?: never;
@@ -67494,12 +67489,12 @@ export interface operations {
                      */
                     input?: string[];
                     /**
-                     * Waypoint Call Id
+                     * Litellm Call Id
                      * @default null
                      */
                     litellm_call_id?: string | null;
                     /**
-                     * Waypoint Logging Obj
+                     * Litellm Logging Obj
                      * @default null
                      */
                     litellm_logging_obj?: {
@@ -67748,7 +67743,7 @@ export interface operations {
                     /** Tool Choice */
                     tool_choice?: ("none" | "auto" | "required") | components["schemas"]["ToolChoiceAllowedParam"] | components["schemas"]["ToolChoiceTypesParam"] | components["schemas"]["ToolChoiceFunctionParam"] | components["schemas"]["ToolChoiceMcpParam"] | components["schemas"]["ToolChoiceCustomParam"] | components["schemas"]["ToolChoiceApplyPatchParam"] | components["schemas"]["ToolChoiceShellParam"] | null;
                     /** Tools */
-                    tools?: (components["schemas"]["FunctionToolParam"] | components["schemas"]["FileSearchToolParam"] | components["schemas"]["openai__types__responses__computer_tool_param__ComputerToolParam"] | components["schemas"]["ComputerUsePreviewToolParam"] | components["schemas"]["WebSearchToolParam"] | components["schemas"]["Mcp"] | components["schemas"]["CodeInterpreter"] | components["schemas"]["ImageGeneration"] | components["schemas"]["LocalShell"] | components["schemas"]["FunctionShellToolParam"] | components["schemas"]["CustomToolParam"] | components["schemas"]["NamespaceToolParam"] | components["schemas"]["ToolSearchToolParam"] | components["schemas"]["WebSearchPreviewToolParam"] | components["schemas"]["ApplyPatchToolParam"] | components["schemas"]["litellm__types__llms__openai__ComputerToolParam"] | components["schemas"]["ShellToolParam"])[] | null;
+                    tools?: (components["schemas"]["FunctionToolParam"] | components["schemas"]["FileSearchToolParam"] | components["schemas"]["openai__types__responses__computer_tool_param__ComputerToolParam"] | components["schemas"]["ComputerUsePreviewToolParam"] | components["schemas"]["WebSearchToolParam"] | components["schemas"]["Mcp"] | components["schemas"]["CodeInterpreter"] | components["schemas"]["ImageGeneration"] | components["schemas"]["LocalShell"] | components["schemas"]["FunctionShellToolParam"] | components["schemas"]["CustomToolParam"] | components["schemas"]["NamespaceToolParam"] | components["schemas"]["ToolSearchToolParam"] | components["schemas"]["WebSearchPreviewToolParam"] | components["schemas"]["ApplyPatchToolParam"] | components["schemas"]["waypoint__types__llms__openai__ComputerToolParam"] | components["schemas"]["ShellToolParam"])[] | null;
                     /** Top Logprobs */
                     top_logprobs?: number | null;
                     /** Top P */
@@ -68451,6 +68446,7 @@ export interface operations {
                 api_key?: string | null;
                 exclude_organization_ids?: string | null;
                 timezone?: number | null;
+                timezone_name?: string | null;
             };
             header?: never;
             path?: never;
@@ -68490,6 +68486,7 @@ export interface operations {
                 api_key?: string | null;
                 exclude_organization_ids?: string | null;
                 timezone?: number | null;
+                timezone_name?: string | null;
             };
             header?: never;
             path?: never;
@@ -68530,6 +68527,7 @@ export interface operations {
                 api_key?: string | null;
                 exclude_organization_ids?: string | null;
                 timezone?: number | null;
+                timezone_name?: string | null;
             };
             header?: never;
             path?: never;
@@ -68569,6 +68567,7 @@ export interface operations {
                 api_key?: string | null;
                 exclude_organization_ids?: string | null;
                 timezone?: number | null;
+                timezone_name?: string | null;
             };
             header?: never;
             path?: never;
@@ -68608,6 +68607,7 @@ export interface operations {
                 api_key?: string | null;
                 exclude_organization_ids?: string | null;
                 timezone?: number | null;
+                timezone_name?: string | null;
             };
             header?: never;
             path?: never;
@@ -71212,7 +71212,7 @@ export interface operations {
                     /** Tool Choice */
                     tool_choice?: ("none" | "auto" | "required") | components["schemas"]["ToolChoiceAllowedParam"] | components["schemas"]["ToolChoiceTypesParam"] | components["schemas"]["ToolChoiceFunctionParam"] | components["schemas"]["ToolChoiceMcpParam"] | components["schemas"]["ToolChoiceCustomParam"] | components["schemas"]["ToolChoiceApplyPatchParam"] | components["schemas"]["ToolChoiceShellParam"] | null;
                     /** Tools */
-                    tools?: (components["schemas"]["FunctionToolParam"] | components["schemas"]["FileSearchToolParam"] | components["schemas"]["openai__types__responses__computer_tool_param__ComputerToolParam"] | components["schemas"]["ComputerUsePreviewToolParam"] | components["schemas"]["WebSearchToolParam"] | components["schemas"]["Mcp"] | components["schemas"]["CodeInterpreter"] | components["schemas"]["ImageGeneration"] | components["schemas"]["LocalShell"] | components["schemas"]["FunctionShellToolParam"] | components["schemas"]["CustomToolParam"] | components["schemas"]["NamespaceToolParam"] | components["schemas"]["ToolSearchToolParam"] | components["schemas"]["WebSearchPreviewToolParam"] | components["schemas"]["ApplyPatchToolParam"] | components["schemas"]["litellm__types__llms__openai__ComputerToolParam"] | components["schemas"]["ShellToolParam"])[] | null;
+                    tools?: (components["schemas"]["FunctionToolParam"] | components["schemas"]["FileSearchToolParam"] | components["schemas"]["openai__types__responses__computer_tool_param__ComputerToolParam"] | components["schemas"]["ComputerUsePreviewToolParam"] | components["schemas"]["WebSearchToolParam"] | components["schemas"]["Mcp"] | components["schemas"]["CodeInterpreter"] | components["schemas"]["ImageGeneration"] | components["schemas"]["LocalShell"] | components["schemas"]["FunctionShellToolParam"] | components["schemas"]["CustomToolParam"] | components["schemas"]["NamespaceToolParam"] | components["schemas"]["ToolSearchToolParam"] | components["schemas"]["WebSearchPreviewToolParam"] | components["schemas"]["ApplyPatchToolParam"] | components["schemas"]["waypoint__types__llms__openai__ComputerToolParam"] | components["schemas"]["ShellToolParam"])[] | null;
                     /** Top Logprobs */
                     top_logprobs?: number | null;
                     /** Top P */
@@ -73472,6 +73472,7 @@ export interface operations {
                 api_key?: string | null;
                 tags?: string | null;
                 timezone?: number | null;
+                timezone_name?: string | null;
             };
             header?: never;
             path?: never;
@@ -73510,6 +73511,7 @@ export interface operations {
                 api_key?: string | null;
                 tags?: string | null;
                 timezone?: number | null;
+                timezone_name?: string | null;
             };
             header?: never;
             path?: never;
@@ -73549,6 +73551,7 @@ export interface operations {
                 api_key?: string | null;
                 tags?: string | null;
                 timezone?: number | null;
+                timezone_name?: string | null;
             };
             header?: never;
             path?: never;
@@ -73587,6 +73590,7 @@ export interface operations {
                 api_key?: string | null;
                 tags?: string | null;
                 timezone?: number | null;
+                timezone_name?: string | null;
             };
             header?: never;
             path?: never;
@@ -73625,6 +73629,7 @@ export interface operations {
                 api_key?: string | null;
                 tags?: string | null;
                 timezone?: number | null;
+                timezone_name?: string | null;
             };
             header?: never;
             path?: never;
@@ -74163,6 +74168,7 @@ export interface operations {
                 api_key?: string | null;
                 exclude_team_ids?: string | null;
                 timezone?: number | null;
+                timezone_name?: string | null;
             };
             header?: never;
             path?: never;
@@ -74202,6 +74208,7 @@ export interface operations {
                 api_key?: string | null;
                 exclude_team_ids?: string | null;
                 timezone?: number | null;
+                timezone_name?: string | null;
             };
             header?: never;
             path?: never;
@@ -74242,6 +74249,7 @@ export interface operations {
                 api_key?: string | null;
                 exclude_team_ids?: string | null;
                 timezone?: number | null;
+                timezone_name?: string | null;
             };
             header?: never;
             path?: never;
@@ -74281,6 +74289,7 @@ export interface operations {
                 api_key?: string | null;
                 exclude_team_ids?: string | null;
                 timezone?: number | null;
+                timezone_name?: string | null;
             };
             header?: never;
             path?: never;
@@ -74320,6 +74329,7 @@ export interface operations {
                 api_key?: string | null;
                 exclude_team_ids?: string | null;
                 timezone?: number | null;
+                timezone_name?: string | null;
             };
             header?: never;
             path?: never;
@@ -76452,6 +76462,7 @@ export interface operations {
                 timezone?: number | null;
                 /** @description When the range ends on the caller's current local day, extend it to today's UTC bucket so spend written after the caller's local midnight (in UTC terms) is included. Requires the timezone parameter. Historical ranges are never extended. */
                 include_current_utc_day?: boolean;
+                timezone_name?: string | null;
             };
             header?: never;
             path?: never;
@@ -76497,6 +76508,7 @@ export interface operations {
                 timezone?: number | null;
                 /** @description When the range ends on the caller's current local day, extend it to today's UTC bucket so spend written after the caller's local midnight (in UTC terms) is included. Requires the timezone parameter. Historical ranges are never extended. */
                 include_current_utc_day?: boolean;
+                timezone_name?: string | null;
             };
             header?: never;
             path?: never;
@@ -76543,6 +76555,7 @@ export interface operations {
                 timezone?: number | null;
                 /** @description When the range ends on the caller's current local day, extend it to today's UTC bucket so spend written after the caller's local midnight (in UTC terms) is included. Requires the timezone parameter. Historical ranges are never extended. */
                 include_current_utc_day?: boolean;
+                timezone_name?: string | null;
             };
             header?: never;
             path?: never;
@@ -76590,6 +76603,7 @@ export interface operations {
                 timezone?: number | null;
                 /** @description When the range ends on the caller's current local day, extend it to today's UTC bucket so spend written after the caller's local midnight (in UTC terms) is included. Requires the timezone parameter. Historical ranges are never extended. */
                 include_current_utc_day?: boolean;
+                timezone_name?: string | null;
             };
             header?: never;
             path?: never;
@@ -76636,6 +76650,7 @@ export interface operations {
                 timezone?: number | null;
                 /** @description When the range ends on the caller's current local day, extend it to today's UTC bucket so spend written after the caller's local midnight (in UTC terms) is included. Requires the timezone parameter. Historical ranges are never extended. */
                 include_current_utc_day?: boolean;
+                timezone_name?: string | null;
             };
             header?: never;
             path?: never;
@@ -76682,6 +76697,7 @@ export interface operations {
                 timezone?: number | null;
                 /** @description When the range ends on the caller's current local day, extend it to today's UTC bucket so spend written after the caller's local midnight (in UTC terms) is included. Requires the timezone parameter. Historical ranges are never extended. */
                 include_current_utc_day?: boolean;
+                timezone_name?: string | null;
             };
             header?: never;
             path?: never;
@@ -78594,12 +78610,12 @@ export interface operations {
                      */
                     input?: string[];
                     /**
-                     * Waypoint Call Id
+                     * Litellm Call Id
                      * @default null
                      */
                     litellm_call_id?: string | null;
                     /**
-                     * Waypoint Logging Obj
+                     * Litellm Logging Obj
                      * @default null
                      */
                     litellm_logging_obj?: {
@@ -81229,7 +81245,7 @@ export interface operations {
                     /** Tool Choice */
                     tool_choice?: ("none" | "auto" | "required") | components["schemas"]["ToolChoiceAllowedParam"] | components["schemas"]["ToolChoiceTypesParam"] | components["schemas"]["ToolChoiceFunctionParam"] | components["schemas"]["ToolChoiceMcpParam"] | components["schemas"]["ToolChoiceCustomParam"] | components["schemas"]["ToolChoiceApplyPatchParam"] | components["schemas"]["ToolChoiceShellParam"] | null;
                     /** Tools */
-                    tools?: (components["schemas"]["FunctionToolParam"] | components["schemas"]["FileSearchToolParam"] | components["schemas"]["openai__types__responses__computer_tool_param__ComputerToolParam"] | components["schemas"]["ComputerUsePreviewToolParam"] | components["schemas"]["WebSearchToolParam"] | components["schemas"]["Mcp"] | components["schemas"]["CodeInterpreter"] | components["schemas"]["ImageGeneration"] | components["schemas"]["LocalShell"] | components["schemas"]["FunctionShellToolParam"] | components["schemas"]["CustomToolParam"] | components["schemas"]["NamespaceToolParam"] | components["schemas"]["ToolSearchToolParam"] | components["schemas"]["WebSearchPreviewToolParam"] | components["schemas"]["ApplyPatchToolParam"] | components["schemas"]["litellm__types__llms__openai__ComputerToolParam"] | components["schemas"]["ShellToolParam"])[] | null;
+                    tools?: (components["schemas"]["FunctionToolParam"] | components["schemas"]["FileSearchToolParam"] | components["schemas"]["openai__types__responses__computer_tool_param__ComputerToolParam"] | components["schemas"]["ComputerUsePreviewToolParam"] | components["schemas"]["WebSearchToolParam"] | components["schemas"]["Mcp"] | components["schemas"]["CodeInterpreter"] | components["schemas"]["ImageGeneration"] | components["schemas"]["LocalShell"] | components["schemas"]["FunctionShellToolParam"] | components["schemas"]["CustomToolParam"] | components["schemas"]["NamespaceToolParam"] | components["schemas"]["ToolSearchToolParam"] | components["schemas"]["WebSearchPreviewToolParam"] | components["schemas"]["ApplyPatchToolParam"] | components["schemas"]["waypoint__types__llms__openai__ComputerToolParam"] | components["schemas"]["ShellToolParam"])[] | null;
                     /** Top Logprobs */
                     top_logprobs?: number | null;
                     /** Top P */
@@ -85659,6 +85675,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_ui_config_waypoint__well_known_waypoint_ui_config_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UiDiscoveryEndpoints"];
                 };
             };
         };

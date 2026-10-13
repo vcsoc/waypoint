@@ -38,6 +38,7 @@ import { useAggregatedDailyActivity } from "../hooks/useAggregatedDailyActivity"
 import { ENTITY_API } from "./EntityUsage/entityFetchFns";
 import {
   EMPTY_DAILY_ACTIVITY_METADATA,
+  reportingTimezone,
   toDailyData,
   type DailyActivityRequest,
 } from "@/components/UsagePage/dailyActivityApi";
@@ -74,6 +75,7 @@ interface UsagePageProps {
 const UsagePage: React.FC<UsagePageProps> = ({ teams, organizations }) => {
   const { accessToken, userRole, userId: userID, premiumUser } = useAuthorized();
   const [gatewayActivityData, setGatewayActivityData] = useState<FetchedGatewayActivity | null>(null);
+  const gatewayAggregatesAvailable = reportingTimezone() === "UTC";
 
   // Create initial dates outside of state to prevent recreation
   const initialFromDate = useMemo(() => new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), []);
@@ -216,7 +218,7 @@ const UsagePage: React.FC<UsagePageProps> = ({ teams, organizations }) => {
   );
   const gatewayFetchIdRef = useRef(0);
   useEffect(() => {
-    if (!isAdmin || !gatewayRequest) return;
+    if (!isAdmin || !gatewayRequest || !gatewayAggregatesAvailable) return;
     const fetchId = ++gatewayFetchIdRef.current;
     gatewayDailyActivityCall(gatewayRequest.accessToken, gatewayRequest.startTime, gatewayRequest.endTime)
       .then((data) => {
@@ -227,9 +229,9 @@ const UsagePage: React.FC<UsagePageProps> = ({ teams, organizations }) => {
         if (gatewayFetchIdRef.current !== fetchId) return;
         setGatewayActivityData(null);
       });
-  }, [isAdmin, gatewayRequest, currentGatewayRangeKey]);
+  }, [isAdmin, gatewayRequest, currentGatewayRangeKey, gatewayAggregatesAvailable]);
 
-  const gatewayActivity = selectGatewayActivity(isAdmin, gatewayActivityData, currentGatewayRangeKey);
+  const gatewayActivity = selectGatewayActivity(isAdmin && gatewayAggregatesAvailable, gatewayActivityData, currentGatewayRangeKey);
 
   const userSpendData = useMemo(
     () => ({

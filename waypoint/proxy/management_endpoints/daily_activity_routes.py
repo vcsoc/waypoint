@@ -50,6 +50,7 @@ from waypoint.types.proxy.management_endpoints.common_daily_activity import (
     SpendAnalyticsPaginatedResponse,
     SpendMetrics,
 )
+from waypoint.types.proxy.user_preferences import validate_timezone
 from waypoint.types.repositories.daily_activity import (
     ExportRow,
     ExportType,
@@ -85,6 +86,11 @@ async def _resolved_scope(
     *,
     user_aggregated: bool,
 ) -> ResolvedScope:
+    if query.timezone_name is not None:
+        try:
+            validate_timezone(query.timezone_name)
+        except ValueError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from None
     date_error: Final[InvalidDateRange | None] = _date_range_error(query, user_aggregated=user_aggregated)
     if date_error is not None:
         raise_public(date_error)

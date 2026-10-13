@@ -39,6 +39,7 @@ class DailyActivityScope:
     model: str | None
     timezone_offset_minutes: int | None
     include_current_utc_day: bool = False
+    timezone_name: str | None = None
 
     def __post_init__(self) -> None:
         if self.entity_id_field not in _ENTITY_FIELDS[self.table]:

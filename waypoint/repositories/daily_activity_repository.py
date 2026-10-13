@@ -145,12 +145,17 @@ class DailyActivityRepository:
         self._prisma_client = prisma_client
         self._proxy_reads = proxy_reads
 
-    async def _query(self, query: SqlQuery) -> tuple[Mapping[str, object], ...]:
-        first_line: Final = query.sql.lstrip().splitlines()[0].lstrip("(").strip()
+    async def _query(
+        self, query: SqlQuery, *, scope: DailyActivityScope | None = None
+    ) -> tuple[Mapping[str, object], ...]:
+        from waypoint.repositories.daily_activity_timezone import localize_daily_query
+
+        effective: Final = query if scope is None else localize_daily_query(scope, query)
+        first_line: Final = effective.sql.lstrip().splitlines()[0].lstrip("(").strip()
         verbose_proxy_logger.debug("DailyActivityRepository query: %s", first_line)
-        async with db_span("daily_activity_query", sql_relation(query.sql)):
+        async with db_span("daily_activity_query", sql_relation(effective.sql)):
             result: Sequence[Mapping[str, object]] | None = await self._prisma_client.db.query_raw(
-                query.sql, *query.params
+                effective.sql, *effective.params
             )
         if result is None:
             return ()
@@ -164,8 +169,8 @@ class DailyActivityRepository:
             build_entity_rollup_sql(scope, api_key_limit=api_key_limit) if include_entity_breakdown else None
         )
         grouping_result, entity_result = await asyncio.gather(
-            self._query(grouping_query),
-            self._query(entity_query) if entity_query is not None else asyncio.sleep(0, result=None),
+            self._query(grouping_query, scope=scope),
+            self._query(entity_query, scope=scope) if entity_query is not None else asyncio.sleep(0, result=None),
         )
         grouping_rows: Final = _GROUPING_ADAPTER.validate_python(grouping_result)
         entity_rows: Final = None if entity_result is None else _ENTITY_ADAPTER.validate_python(entity_result)
@@ -182,12 +187,12 @@ class DailyActivityRepository:
         if not 1 <= limit <= constants.USAGE_KEY_SEARCH_MAX:
             raise ValueError(f"limit must be between 1 and {constants.USAGE_KEY_SEARCH_MAX}")
         query: Final = build_key_search_sql(scope, search=search, limit=limit)
-        rows: Final = _KEY_SPEND_ADAPTER.validate_python(await self._query(query))
+        rows: Final = _KEY_SPEND_ADAPTER.validate_python(await self._query(query, scope=scope))
         return tuple(row.api_key for row in rows)
 
     async def key_page(self, scope: DailyActivityScope, *, offset: int, limit: int) -> KeyPage:
         query: Final = build_key_page_sql(scope, offset=offset, limit=limit)
-        result: Final = await self._query(query)
+        result: Final = await self._query(query, scope=scope)
         total_api_keys_value: Final = result[0].get("total_api_keys") if result else 0
         total_api_keys: Final = (
             _KEY_PAGE_TOTAL_ADAPTER.validate_python(total_api_keys_value) if total_api_keys_value is not None else 0
@@ -206,20 +211,22 @@ class DailyActivityRepository:
             by_model_group=by_model_group,
             limit=limit,
         )
-        return _KEY_SPEND_ADAPTER.validate_python(await self._query(query))
+        return _KEY_SPEND_ADAPTER.validate_python(await self._query(query, scope=scope))
 
     async def cache_leakage_keys(self, scope: DailyActivityScope, *, limit: int) -> tuple[KeySpendRow, ...]:
         if not 1 <= limit <= constants.USAGE_CACHE_LEAKAGE_KEYS_MAX:
             raise ValueError(f"limit must be between 1 and {constants.USAGE_CACHE_LEAKAGE_KEYS_MAX}")
         query: Final = build_cache_leakage_keys_sql(scope, limit=limit)
-        return _KEY_SPEND_ADAPTER.validate_python(await self._query(query))
+        return _KEY_SPEND_ADAPTER.validate_python(await self._query(query, scope=scope))
 
     async def export_rows(self, scope: DailyActivityScope, *, export_type: ExportType) -> AsyncIterator[ExportRow]:
         batch_size: Final = constants.USAGE_EXPORT_BATCH_SIZE
         cursor: ExportCursor | None = None  # rebind-ok: each page advances the export keyset cursor
         while True:
             batch: tuple[ExportRow, ...] = _EXPORT_ADAPTER.validate_python(
-                await self._query(build_export_sql(scope, export_type=export_type, after=cursor, batch_size=batch_size))
+                await self._query(
+                    build_export_sql(scope, export_type=export_type, after=cursor, batch_size=batch_size), scope=scope
+                )
             )
             for row in batch:
                 yield row

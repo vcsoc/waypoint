@@ -130,7 +130,7 @@ export function Leaderboard({
   const value = (row: LeaderRow) => rankValue(row, metric);
   const rows = ranking.slice(0, limit);
   if (rows.length === 0) {
-    return <p className="py-8 text-center text-xs text-muted-foreground">No usage in this range</p>;
+    return <p className="py-8 text-center text-xs text-muted-foreground">No recorded {metric} in this range</p>;
   }
   const half = columns === 2 ? Math.ceil(rows.length / 2) : rows.length;
   const groups = columns === 2 ? [rows.slice(0, half), rows.slice(half)] : [rows];

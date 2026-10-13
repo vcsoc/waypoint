@@ -30,6 +30,7 @@ class EntityQuery:
     model: str | None
     timezone_offset_minutes: int | None
     include_current_utc_day: bool
+    timezone_name: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -94,7 +95,8 @@ def _build_scope(
             end_date=end_date,
             model=query.model,
             timezone_offset_minutes=query.timezone_offset_minutes,
-            include_current_utc_day=query.include_current_utc_day,
+            include_current_utc_day=query.include_current_utc_day if query.timezone_name is None else False,
+            timezone_name=query.timezone_name,
         ),
         entity_metadata=entity_metadata,
     )
@@ -238,6 +240,7 @@ def _user_query(
         "terms) is included. Requires the timezone parameter. Historical ranges are "
         "never extended.",
     ),
+    timezone_name: str | None = None,
 ) -> EntityQuery:
     return EntityQuery(
         entity_ids=(user_id,) if user_id is not None else None,
@@ -248,6 +251,7 @@ def _user_query(
         model=model,
         timezone_offset_minutes=timezone,
         include_current_utc_day=include_current_utc_day,
+        timezone_name=timezone_name,
     )
 
 
@@ -259,9 +263,11 @@ def _team_query(
     api_key: str | None = None,
     exclude_team_ids: str | None = None,
     timezone: int | None = None,
+    timezone_name: str | None = None,
 ) -> EntityQuery:
     return EntityQuery(
         entity_ids=_query_ids(team_ids),
+        timezone_name=timezone_name,
         exclude_entity_ids=_query_excluded_ids(exclude_team_ids),
         api_key=api_key,
         start_date=start_date,
@@ -279,9 +285,11 @@ def _tag_query(
     api_key: str | None = None,
     tags: str | None = None,
     timezone: int | None = None,
+    timezone_name: str | None = None,
 ) -> EntityQuery:
     return EntityQuery(
         entity_ids=_query_ids(tags),
+        timezone_name=timezone_name,
         exclude_entity_ids=(),
         api_key=api_key,
         start_date=start_date,
@@ -300,9 +308,11 @@ def _organization_query(
     api_key: str | None = None,
     exclude_organization_ids: str | None = None,
     timezone: int | None = None,
+    timezone_name: str | None = None,
 ) -> EntityQuery:
     return EntityQuery(
         entity_ids=_query_ids(organization_ids),
+        timezone_name=timezone_name,
         exclude_entity_ids=_query_excluded_ids(exclude_organization_ids),
         api_key=api_key,
         start_date=start_date,
@@ -321,9 +331,11 @@ def _customer_query(
     api_key: str | None = None,
     exclude_end_user_ids: str | None = None,
     timezone: int | None = None,
+    timezone_name: str | None = None,
 ) -> EntityQuery:
     return EntityQuery(
         entity_ids=_query_ids(end_user_ids),
+        timezone_name=timezone_name,
         exclude_entity_ids=_query_excluded_ids(exclude_end_user_ids),
         api_key=api_key,
         start_date=start_date,
@@ -342,9 +354,11 @@ def _agent_query(
     api_key: str | None = None,
     exclude_agent_ids: str | None = None,
     timezone: int | None = None,
+    timezone_name: str | None = None,
 ) -> EntityQuery:
     return EntityQuery(
         entity_ids=_query_ids(agent_ids),
+        timezone_name=timezone_name,
         exclude_entity_ids=_query_excluded_ids(exclude_agent_ids),
         api_key=api_key,
         start_date=start_date,
