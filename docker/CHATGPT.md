@@ -27,6 +27,12 @@ PostgreSQL stores its data in `/home/vcsoc/data/waypoint`, outside the repositor
 
 The admin UI is at http://127.0.0.1:4001/ui/. Its username and password are `UI_USERNAME` and `UI_PASSWORD` in your private `.env`. Set `WAYPOINT_PORT` there to use another local port, and update Pi's base URL accordingly
 
+## Docker network
+
+The stack uses `10.254.96.0/24` by default. Set `WAYPOINT_DOCKER_SUBNET` if it conflicts with your LAN, VPN or another Docker network. Docker's automatic subnet allocation can otherwise cover an internal service address and route container traffic to a local bridge instead of the LAN
+
+Changing the configured subnet does not migrate an existing network. Record its attached containers and data mounts, then stop those containers and replace only this stack's network before reconnecting and starting them. Preserve database storage, image versions, ports and credentials. Check container health and a required outbound service from inside the container afterward
+
 ## Sign in to ChatGPT
 
 Use a separate login for Waypoint instead of sharing Pi's or Codex's refresh token. Refresh-token rotation can otherwise break one of the clients. The command below stores an independent credential in a temporary login file, then replaces the gateway credential only after authentication succeeds

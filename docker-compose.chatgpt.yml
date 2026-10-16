@@ -53,3 +53,9 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: ${WAYPOINT_DOCKER_SUBNET:-10.254.96.0/24}
